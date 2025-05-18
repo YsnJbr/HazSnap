@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import os
 
-st.title("HazSnap")
+st.title("HazSnap - Creating time for you")
 
 
 
