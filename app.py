@@ -69,7 +69,7 @@ else:
                 st.subheader("❌ Removed Entries")
                 st.dataframe(removed_entries)
 
-            ---
+            st.markdown('---')
             st.title("Display today's preview")
             # Display full today's dataset
             st.subheader(f"📋 Full List for {today.strftime('%Y-%m-%d')}")
