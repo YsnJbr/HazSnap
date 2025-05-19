@@ -1,0 +1,30 @@
+name: Daily _get_page.py run
+
+on:
+  schedule:
+    - cron: '30 22 * * *'  # Runs daily at 22:30 UTC
+  workflow_dispatch:        # Allows manual trigger too
+
+jobs:
+  run_script:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run _get_page.py
+      run: python _get_page.py
+
+    - name: Show current UTC time (for debug)
+      run: date -u
