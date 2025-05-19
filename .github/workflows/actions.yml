@@ -2,41 +2,45 @@ name: Daily CLH Snapshot
 
 on:
   schedule:
-    - cron: '30 22 * * *'  # Every day at 22:30 UTC
-  workflow_dispatch:        # Optional: manual trigger
+    - cron: '30 22 * * *'   # At 22:30 UTC every day
+  workflow_dispatch:        # Allows manual trigger
 
 jobs:
-  run_script:
+  run-daily:
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          persist-credentials: false  # We'll set them manually
+    env:
+      MJ_API_KEY: ${{ secrets.MJ_API_KEY }}
+      MJ_API_SECRET: ${{ secrets.MJ_API_SECRET }}
 
-      - name: Set up Python
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run _get_page.py
-        run: python _get_page.py
-
-      - name: Commit and push snapshot
+      - name: Run snapshot script
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
+          python _get_page.py
 
-          today=$(date -u +'%Y-%m-%d')
-          git add clh_snapshot_${today}.csv clh_snapshot_${today}.html
+      - name: Configure Git user
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
 
-          git commit -m "Add daily CLH snapshot for $today" || echo "Nothing to commit"
-          git push origin master
+      - name: Commit and push changes
+        run: |
+          git add .
+          git diff --cached --quiet || (git commit -m "Add daily CLH snapshot for $(date +'%Y-%m-%d')" && \
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} && \
+          git push origin master)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
