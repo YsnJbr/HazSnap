@@ -2,8 +2,8 @@ name: Daily CLH Snapshot
 
 on:
   schedule:
-    - cron: '30 22 * * *'   # At 22:30 UTC every day
-  workflow_dispatch:        # Allows manual trigger
+    - cron: '30 22 * * *'   # Run daily at 22:30 UTC
+  workflow_dispatch:        # Manual trigger option
 
 jobs:
   run-daily:
@@ -39,8 +39,8 @@ jobs:
       - name: Commit and push changes
         run: |
           git add .
-          git diff --cached --quiet || (git commit -m "Add daily CLH snapshot for $(date +'%Y-%m-%d')" && \
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} && \
-          git push origin master)
+          git diff --cached --quiet || git commit -m "Add daily CLH snapshot for $(date +'%Y-%m-%d')"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git push origin master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
