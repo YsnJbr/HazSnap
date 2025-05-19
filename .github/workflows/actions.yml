@@ -3,13 +3,14 @@ name: Daily CLH Snapshot
 on:
   schedule:
     - cron: '30 22 * * *'   # Run daily at 22:30 UTC
-  workflow_dispatch:        # Manual trigger option
+  workflow_dispatch:        # Allow manual trigger
 
 jobs:
   run-daily:
     runs-on: ubuntu-latest
 
     env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       MJ_API_KEY: ${{ secrets.MJ_API_KEY }}
       MJ_API_SECRET: ${{ secrets.MJ_API_SECRET }}
 
@@ -28,19 +29,21 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run snapshot script
-        run: |
-          python _get_page.py
+        run: python _get_page.py
 
       - name: Configure Git user
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
 
       - name: Commit and push changes
         run: |
-          git add .
-          git diff --cached --quiet || git commit -m "Add daily CLH snapshot for $(date +'%Y-%m-%d')"
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          today=$(date -u +'%Y-%m-%d')
+          git add clh_snapshot_${today}.csv clh_snapshot_${today}.html
+          git commit -m "Add daily CLH snapshot for $today" || echo "Nothing to commit"
+
+          # Set remote URL with token for authentication
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
           git push origin master
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
