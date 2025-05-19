@@ -3,7 +3,7 @@ name: Daily CLH Snapshot
 on:
   schedule:
     - cron: '30 22 * * *'   # Run daily at 22:30 UTC
-  workflow_dispatch:        # Allow manual trigger
+  workflow_dispatch:        # Manual trigger
 
 jobs:
   run-daily:
@@ -42,7 +42,7 @@ jobs:
           git add clh_snapshot_${today}.csv clh_snapshot_${today}.html
           git commit -m "Add daily CLH snapshot for $today" || echo "Nothing to commit"
 
-          # Set remote URL with token for authentication
+          # Authenticate push with GitHub token
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
           git push origin master
         env:
