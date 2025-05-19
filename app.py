@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 import os
 
-st.title("HazSnap")
+st.title("HazSnap - Creating time for you")
 
 
 
@@ -69,7 +69,8 @@ else:
                 st.subheader("❌ Removed Entries")
                 st.dataframe(removed_entries)
 
-
+            ---
+            st.title("Display today's preview")
             # Display full today's dataset
             st.subheader(f"📋 Full List for {today.strftime('%Y-%m-%d')}")
             st.dataframe(df_new.reset_index())
