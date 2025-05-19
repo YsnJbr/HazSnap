@@ -1,30 +1,42 @@
-name: Daily _get_page.py run
+name: Daily CLH Snapshot
 
 on:
   schedule:
-    - cron: '30 22 * * *'  # Runs daily at 22:30 UTC
-  workflow_dispatch:        # Allows manual trigger too
+    - cron: '30 22 * * *'  # Every day at 22:30 UTC
+  workflow_dispatch:        # Optional: manual trigger
 
 jobs:
   run_script:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false  # We'll set them manually
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Run _get_page.py
-      run: python _get_page.py
+      - name: Run _get_page.py
+        run: python _get_page.py
 
-    - name: Show current UTC time (for debug)
-      run: date -u
+      - name: Commit and push snapshot
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+
+          today=$(date -u +'%Y-%m-%d')
+          git add clh_snapshot_${today}.csv clh_snapshot_${today}.html
+
+          git commit -m "Add daily CLH snapshot for $today" || echo "Nothing to commit"
+          git push origin master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
