@@ -2,7 +2,7 @@ name: Daily CLH Snapshot
 
 on:
   schedule:
-    - cron: '30 22 * * *'   # Run daily at 22:30 UTC
+    - cron: '30 0 * * *'   # Run daily at 00:30 UTC
   workflow_dispatch:        # Manual trigger
 
 jobs:
