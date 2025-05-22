@@ -33,6 +33,12 @@ def main():
             tables = pd.read_html(html_content)
             if tables:
                 df = tables[0]
+
+                # Remove unwanted or empty columns
+                df = df.loc[:, df.columns.notna()]              # Remove columns with NaN as name
+                df = df.loc[:, df.columns != 'Unnamed: 0']      # Drop generic unnamed index column
+                df = df.dropna(axis=1, how='all')               # Drop completely empty columns
+
                 csv_filename = f"clh_snapshot_{today_str}.csv"
                 df.to_csv(csv_filename, index=False)
                 print(f"CSV file created: `{csv_filename}`")
