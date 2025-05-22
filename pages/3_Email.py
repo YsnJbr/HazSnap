@@ -36,5 +36,5 @@ if st.button("Send Test Email"):
     send_email_mailjet(
         subject="Mailjet Test Email",
         text="This is a test email from your Streamlit app via Mailjet.",
-        recipients=["your@email.com"]
+        recipients=["yassine.jebrane@gmail.com"]
     )
