@@ -32,7 +32,7 @@ def send_email_mailjet(subject, text, recipients):
 # Streamlit UI
 st.title("📧 Mailjet Test")
 
-if st.button("Send Test Email"):
+if st.button("Send Test Email X"):
     send_email_mailjet(
         subject="Mailjet Test Email",
         text="This is a test email from your Streamlit app via Mailjet.",
