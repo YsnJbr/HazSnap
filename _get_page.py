@@ -34,10 +34,12 @@ def main():
             if tables:
                 df = tables[0]
 
-                # Remove unwanted or empty columns
-                df = df.loc[:, df.columns.notna()]              # Remove columns with NaN as name
-                df = df.loc[:, df.columns != 'Unnamed: 0']      # Drop generic unnamed index column
-                df = df.dropna(axis=1, how='all')               # Drop completely empty columns
+                # Clean and filter the DataFrame
+                df = df.dropna(how='all')                         # Remove completely empty rows
+                df.columns = df.columns.str.strip()              # Strip whitespace from column names
+                df = df.loc[:, df.columns.notna()]               # Remove columns with NaN names
+                df = df.loc[:, df.columns != 'Unnamed: 0']       # Remove unnamed index columns
+                df = df.dropna(axis=1, how='all')                # Remove completely empty columns
 
                 csv_filename = f"clh_snapshot_{today_str}.csv"
                 df.to_csv(csv_filename, index=False)
