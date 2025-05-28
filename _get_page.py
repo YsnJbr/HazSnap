@@ -1,3 +1,4 @@
+import os
 import requests
 from datetime import datetime
 import pandas as pd
@@ -5,9 +6,8 @@ import pandas as pd
 def main():
     print("Download CLH Snapshot and Convert to CSV")
 
-    # Use default URL directly, no input
+    # Use default URL directly
     url = "https://echa.europa.eu/fr/registry-of-clh-intentions-until-outcome"
-
     print(f"Downloading page from: {url}")
 
     headers = {
@@ -20,7 +20,11 @@ def main():
     if response.status_code == 200:
         print("Page downloaded successfully!")
         today_str = datetime.now().strftime("%Y-%m-%d")
-        html_filename = f"clh_snapshot_{today_str}.html"
+
+        # Save paths inside the "Data" folder
+        os.makedirs("Data", exist_ok=True)
+        html_filename = os.path.join("Data", f"clh_snapshot_{today_str}.html")
+        csv_filename = os.path.join("Data", f"clh_snapshot_{today_str}.csv")
 
         with open(html_filename, "w", encoding="utf-8") as f:
             f.write(response.text)
@@ -34,17 +38,15 @@ def main():
             if tables:
                 df = tables[0]
 
-                # Clean and filter the DataFrame
-                df = df.dropna(how='all')                         # Remove completely empty rows
-                df.columns = df.columns.str.strip()              # Strip whitespace from column names
-                df = df.loc[:, df.columns.notna()]               # Remove columns with NaN names
-                df = df.loc[:, df.columns != 'Unnamed: 0']       # Remove unnamed index columns
-                df = df.dropna(axis=1, how='all')                # Remove completely empty columns
+                # Clean and filter
+                df = df.dropna(how='all')
+                df.columns = df.columns.str.strip()
+                df = df.loc[:, df.columns.notna()]
+                df = df.loc[:, df.columns != 'Unnamed: 0']
+                df = df.dropna(axis=1, how='all')
 
-                csv_filename = f"clh_snapshot_{today_str}.csv"
                 df.to_csv(csv_filename, index=False)
                 print(f"CSV file created: `{csv_filename}`")
-                print(f"CSV file ready for use: {csv_filename}")
             else:
                 print("No tables found in the downloaded HTML.")
         except Exception as e:

@@ -12,8 +12,9 @@ st.markdown("### *Creating time for you 🧪📸*")
 today = datetime.now()
 yesterday = today - timedelta(days=1)
 
-file_new = f"clh_snapshot_{today.strftime('%Y-%m-%d')}.csv"
-file_old = f"clh_snapshot_{yesterday.strftime('%Y-%m-%d')}.csv"
+file_new = os.path.join("Data", f"clh_snapshot_{today.strftime('%Y-%m-%d')}.csv")
+file_old = os.path.join("Data", f"clh_snapshot_{yesterday.strftime('%Y-%m-%d')}.csv")
+
 
 
 # Check if files exist
