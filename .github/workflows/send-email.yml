@@ -1,0 +1,28 @@
+name: Send ECHA Update Emails
+
+on:
+  schedule:
+    - cron: "30 5 * * *"  # ⏰ Every day at 05:30 UTC
+  workflow_dispatch:       # 🔘 Allow manual trigger from GitHub UI
+
+
+jobs:
+  send_email:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install pandas python-dotenv requests
+
+      - name: Run email script
+        env:
+          MAILJET_API_KEY: ${{ secrets.MAILJET_API_KEY }}
+          MAILJET_API_SECRET: ${{ secrets.MAILJET_API_SECRET }}
+          MAILJET_SENDER_EMAIL: ${{ secrets.MAILJET_SENDER_EMAIL }}
+        run: python _email.py
