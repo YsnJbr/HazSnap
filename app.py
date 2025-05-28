@@ -3,8 +3,8 @@ import pandas as pd
 from datetime import datetime, timedelta
 import os
 
-st.title("HazSnap - Creating time for you")
-
+st.title("HazSnap")
+st.markdown("### *Creating time for you 🧪📸*")
 
 
 
@@ -14,9 +14,6 @@ yesterday = today - timedelta(days=1)
 
 file_new = f"clh_snapshot_{today.strftime('%Y-%m-%d')}.csv"
 file_old = f"clh_snapshot_{yesterday.strftime('%Y-%m-%d')}.csv"
-
-
-
 
 
 # Check if files exist
