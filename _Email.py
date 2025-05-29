@@ -1,31 +1,33 @@
 import os
-import requests
 import pandas as pd
+from datetime import datetime, timedelta
+import requests
+from dotenv import load_dotenv
 
-# --- Configurable flag ---
-SEND_EMAIL_ALWAYS = True  # Set to True to send email always (testing). False = only on changes.
+# Load secrets from .env for local dev or GitHub Actions secrets
+load_dotenv()
 
-# Load secrets from environment variables
 MAILJET_API_KEY = os.getenv("MAILJET_API_KEY")
 MAILJET_API_SECRET = os.getenv("MAILJET_API_SECRET")
 SENDER_EMAIL = os.getenv("MAILJET_SENDER_EMAIL")
 
-if not all([MAILJET_API_KEY, MAILJET_API_SECRET, SENDER_EMAIL]):
-    print("❌ Missing Mailjet credentials in environment variables.")
-    exit(1)
+RECIPIENTS = [
+    "yassine.jebrane@gmail.com",
+    # Add more emails here if needed
+]
 
-# Email sending function
-def send_email_mailjet(subject, text, recipients):
+def send_email_mailjet(subject, text, recipient):
     data = {
         'Messages': [
             {
                 "From": {"Email": SENDER_EMAIL, "Name": "ECHA Monitor"},
-                "To": [{"Email": email} for email in recipients],
+                "To": [{"Email": recipient, "Name": recipient.split('@')[0]}],
                 "Subject": subject,
                 "TextPart": text
             }
         ]
     }
+
     response = requests.post(
         "https://api.mailjet.com/v3.1/send",
         auth=(MAILJET_API_KEY, MAILJET_API_SECRET),
@@ -33,69 +35,71 @@ def send_email_mailjet(subject, text, recipients):
     )
 
     if response.status_code == 200:
-        print("✅ Email sent successfully!")
+        print(f"✅ Email sent to {recipient}")
     else:
-        print(f"❌ Failed to send email: {response.status_code} - {response.text}")
+        print(f"❌ Failed to send email to {recipient}: {response.text}")
 
-# Load today and yesterday CSVs to detect changes
-from datetime import datetime, timedelta
+def generate_diff_report(file_new, file_old):
+    try:
+        df_old = pd.read_csv(file_old)
+        df_new = pd.read_csv(file_new)
+        key_cols = ["Substance name", "CAS no"]
 
-today = datetime.now()
-yesterday = today - timedelta(days=1)
+        df_old.set_index(key_cols, inplace=True)
+        df_new.set_index(key_cols, inplace=True)
 
-file_new = os.path.join("Data", f"clh_snapshot_{today.strftime('%Y-%m-%d')}.csv")
-file_old = os.path.join("Data", f"clh_snapshot_{yesterday.strftime('%Y-%m-%d')}.csv")
+        new_entries = df_new.loc[~df_new.index.isin(df_old.index)]
+        removed_entries = df_old.loc[~df_old.index.isin(df_new.index)]
+        common_idx = df_old.index.intersection(df_new.index)
+        changed_mask = (df_old.loc[common_idx] != df_new.loc[common_idx]).any(axis=1)
+        changed_entries = df_new.loc[common_idx][changed_mask]
 
-if not os.path.isfile(file_old):
-    print(f"❌ Yesterday's file not found: {file_old}")
-    exit(1)
-if not os.path.isfile(file_new):
-    print(f"❌ Today's file not found: {file_new}")
-    exit(1)
+        summary = []
+        if not new_entries.empty:
+            summary.append(f"🆕 New entries: {len(new_entries)}")
+        if not removed_entries.empty:
+            summary.append(f"❌ Removed entries: {len(removed_entries)}")
+        if not changed_entries.empty:
+            summary.append(f"🔄 Changed entries: {len(changed_entries)}")
 
-df_old = pd.read_csv(file_old)
-df_new = pd.read_csv(file_new)
+        if not summary:
+            return None  # No changes detected
 
-key_cols = ["Substance name", "CAS no"]
-if not all(col in df_old.columns and col in df_new.columns for col in key_cols):
-    print(f"❌ Missing one or more key columns: {key_cols}")
-    exit(1)
+        # Detailed content (truncated to essentials)
+        detailed_changes = "\n".join(summary) + "\n\n"
 
-df_old.set_index(key_cols, inplace=True)
-df_new.set_index(key_cols, inplace=True)
+        if not new_entries.empty:
+            detailed_changes += f"New Entries Sample:\n{new_entries.reset_index().head(5).to_string(index=False)}\n\n"
+        if not removed_entries.empty:
+            detailed_changes += f"Removed Entries Sample:\n{removed_entries.reset_index().head(5).to_string(index=False)}\n\n"
+        if not changed_entries.empty:
+            detailed_changes += f"Changed Entries Sample:\n{changed_entries.reset_index().head(5).to_string(index=False)}\n"
 
-new_entries = df_new.loc[~df_new.index.isin(df_old.index)].reset_index()
-removed_entries = df_old.loc[~df_old.index.isin(df_new.index)].reset_index()
-common_idx = df_old.index.intersection(df_new.index)
-changed_mask = (df_old.loc[common_idx] != df_new.loc[common_idx]).any(axis=1)
-changed_entries = df_new.loc[common_idx][changed_mask].reset_index()
+        return detailed_changes
 
-# Compose email content
-subject = f"ECHA CLH Registry Update {today.strftime('%Y-%m-%d')}"
+    except Exception as e:
+        return f"Error generating diff: {e}"
 
-if len(new_entries) == 0 and len(removed_entries) == 0 and len(changed_entries) == 0:
-    email_text = (
-        f"No changes detected in ECHA CLH Registry for {today.strftime('%Y-%m-%d')}.\n"
-        "This is an automated notification."
-    )
-else:
-    email_text = (
-        f"ECHA CLH Registry Update for {today.strftime('%Y-%m-%d')}:\n\n"
-        f"New entries: {len(new_entries)}\n"
-        f"Removed entries: {len(removed_entries)}\n"
-        f"Changed entries: {len(changed_entries)}\n\n"
-        "Please check the attached data or dashboard for details."
-    )
+def main():
+    today = datetime.now()
+    yesterday = today - timedelta(days=1)
 
-# Define recipients list here (or load from file/env)
-recipients = ["yassine.jebrane@gmail.com"]  # Replace or extend
+    file_new = os.path.join("Data", f"clh_snapshot_{today.strftime('%Y-%m-%d')}.csv")
+    file_old = os.path.join("Data", f"clh_snapshot_{yesterday.strftime('%Y-%m-%d')}.csv")
 
-# Decide whether to send email
-if SEND_EMAIL_ALWAYS or (len(new_entries) > 0 or len(removed_entries) > 0 or len(changed_entries) > 0):
-    if SEND_EMAIL_ALWAYS:
-        print("Test mode ON: sending email regardless of changes.")
-    else:
-        print("Changes detected, sending email.")
-    send_email_mailjet(subject, email_text, recipients)
-else:
-    print("No changes detected, no email sent.")
+    if not os.path.isfile(file_new) or not os.path.isfile(file_old):
+        print("❌ Required CSV files not found.")
+        return
+
+    report = generate_diff_report(file_new, file_old)
+    if report is None:
+        print("✅ No changes detected. No email sent.")
+        return
+
+    subject = f"ECHA Monitor – Changes for {today.strftime('%Y-%m-%d')}"
+
+    for email in RECIPIENTS:
+        send_email_mailjet(subject, report, email)
+
+if __name__ == "__main__":
+    main()
