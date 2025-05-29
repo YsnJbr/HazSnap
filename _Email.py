@@ -103,11 +103,11 @@ def main():
             print("⚠️ No changes detected, but TEST_SEND_EMAIL=True, sending test email anyway.")
             # Prepare preview content for testing
             df_new = pd.read_csv(file_new)
-            preview_text = df_new.head(10).to_string(index=False)
+            preview_html = df_new.head(10).to_html(index=False, border=1)
 
             subject = f"ECHA Monitor – Test email for {today.strftime('%Y-%m-%d')}"
             variables = {
-                "content": preview_text,
+                "content": preview_html,
                 "footer": "This is a test email sent even when no changes are detected."
             }
 
