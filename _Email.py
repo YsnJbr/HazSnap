@@ -4,29 +4,28 @@ from datetime import datetime, timedelta
 import requests
 from dotenv import load_dotenv
 
-# Load secrets from .env for local dev or GitHub Actions secrets
 load_dotenv()
 
 MAILJET_API_KEY = os.getenv("MAILJET_API_KEY")
 MAILJET_API_SECRET = os.getenv("MAILJET_API_SECRET")
 SENDER_EMAIL = os.getenv("MAILJET_SENDER_EMAIL")
+TEST_SEND_EMAIL = os.getenv("TEST_SEND_EMAIL", "false").lower() == "true"
 
 RECIPIENTS = [
     "yassine.jebrane@gmail.com",
     # Add more emails here if needed
 ]
 
-# Add this flag to activate forced email sending for testing
-TEST_SEND_EMAIL = True  # <-- Set True to send email regardless of changes, False = normal mode
-
-def send_email_mailjet(subject, text, recipient):
+def send_email_mailjet_template(template_id, variables, subject, recipient):
     data = {
         'Messages': [
             {
                 "From": {"Email": SENDER_EMAIL, "Name": "ECHA Monitor"},
                 "To": [{"Email": recipient, "Name": recipient.split('@')[0]}],
                 "Subject": subject,
-                "TextPart": text
+                "TemplateID": template_id,
+                "TemplateLanguage": True,
+                "Variables": variables
             }
         ]
     }
@@ -38,9 +37,9 @@ def send_email_mailjet(subject, text, recipient):
     )
 
     if response.status_code == 200:
-        print(f"✅ Email sent to {recipient}")
+        print(f"✅ Template email sent to {recipient}")
     else:
-        print(f"❌ Failed to send email to {recipient}: {response.text}")
+        print(f"❌ Failed to send template email to {recipient}: {response.text}")
 
 def generate_diff_report(file_new, file_old):
     try:
@@ -68,8 +67,8 @@ def generate_diff_report(file_new, file_old):
         if not summary:
             return None  # No changes detected
 
+        # Compose summary string for template variable
         detailed_changes = "\n".join(summary) + "\n\n"
-
         if not new_entries.empty:
             detailed_changes += f"New Entries Sample:\n{new_entries.reset_index().head(5).to_string(index=False)}\n\n"
         if not removed_entries.empty:
@@ -89,24 +88,44 @@ def main():
     file_new = os.path.join("Data", f"clh_snapshot_{today.strftime('%Y-%m-%d')}.csv")
     file_old = os.path.join("Data", f"clh_snapshot_{yesterday.strftime('%Y-%m-%d')}.csv")
 
-    if not os.path.isfile(file_new) or not os.path.isfile(file_old):
-        print("❌ Required CSV files not found.")
+    if not os.path.isfile(file_new):
+        print(f"❌ Required CSV file not found: {file_new}")
+        return
+    if not os.path.isfile(file_old):
+        print(f"❌ Required CSV file not found: {file_old}")
         return
 
     report = generate_diff_report(file_new, file_old)
+    template_id = 7028286  # <-- Replace with your Mailjet template ID
 
     if report is None:
         if TEST_SEND_EMAIL:
-            report = "No changes detected, but sending this test email as requested."
-            print("⚠️ No changes detected, but TEST_SEND_EMAIL=True, sending email anyway.")
+            print("⚠️ No changes detected, but TEST_SEND_EMAIL=True, sending test email anyway.")
+            # Prepare preview content for testing
+            df_new = pd.read_csv(file_new)
+            preview_text = df_new.head(10).to_string(index=False)
+
+            subject = f"ECHA Monitor – Test email for {today.strftime('%Y-%m-%d')}"
+            variables = {
+                "content": preview_text,
+                "footer": "This is a test email sent even when no changes are detected."
+            }
+
+            for email in RECIPIENTS:
+                send_email_mailjet_template(template_id, variables, subject, email)
         else:
             print("✅ No changes detected. No email sent.")
-            return
+        return
 
+    # If changes detected, send real report email
     subject = f"ECHA Monitor – Changes for {today.strftime('%Y-%m-%d')}"
+    variables = {
+        "content": report,
+        "footer": "This email lists detected changes in the CLH registry snapshot."
+    }
 
     for email in RECIPIENTS:
-        send_email_mailjet(subject, report, email)
+        send_email_mailjet_template(template_id, variables, subject, email)
 
 if __name__ == "__main__":
     main()

@@ -20,6 +20,13 @@ jobs:
       - name: Install dependencies
         run: pip install pandas python-dotenv requests
 
+        # Debug step to verify env vars are set
+      - name: Check environment variables
+        run: |
+          echo "API Key set: ${MAILJET_API_KEY:+Yes}"
+          echo "API Secret set: ${MAILJET_API_SECRET:+Yes}"
+          echo "Sender email set: ${MAILJET_SENDER_EMAIL:+Yes}"
+
       - name: Run email script
         env:
           MAILJET_API_KEY: ${{ secrets.MAILJET_API_KEY }}
