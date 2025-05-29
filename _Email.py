@@ -9,7 +9,7 @@ load_dotenv()
 MAILJET_API_KEY = os.getenv("MAILJET_API_KEY")
 MAILJET_API_SECRET = os.getenv("MAILJET_API_SECRET")
 SENDER_EMAIL = os.getenv("MAILJET_SENDER_EMAIL")
-TEST_SEND_EMAIL = os.getenv("TEST_SEND_EMAIL", "false").lower() == "true"
+TEST_SEND_EMAIL = True  # Hardcoded for testing — send email even if no changes detected
 
 RECIPIENTS = [
     "yassine.jebrane@gmail.com",
