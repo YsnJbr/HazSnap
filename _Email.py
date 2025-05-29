@@ -16,6 +16,9 @@ RECIPIENTS = [
     # Add more emails here if needed
 ]
 
+# Add this flag to activate forced email sending for testing
+TEST_SEND_EMAIL = True  # <-- Set True to send email regardless of changes, False = normal mode
+
 def send_email_mailjet(subject, text, recipient):
     data = {
         'Messages': [
@@ -65,7 +68,6 @@ def generate_diff_report(file_new, file_old):
         if not summary:
             return None  # No changes detected
 
-        # Detailed content (truncated to essentials)
         detailed_changes = "\n".join(summary) + "\n\n"
 
         if not new_entries.empty:
@@ -92,9 +94,14 @@ def main():
         return
 
     report = generate_diff_report(file_new, file_old)
+
     if report is None:
-        print("✅ No changes detected. No email sent.")
-        return
+        if TEST_SEND_EMAIL:
+            report = "No changes detected, but sending this test email as requested."
+            print("⚠️ No changes detected, but TEST_SEND_EMAIL=True, sending email anyway.")
+        else:
+            print("✅ No changes detected. No email sent.")
+            return
 
     subject = f"ECHA Monitor – Changes for {today.strftime('%Y-%m-%d')}"
 
