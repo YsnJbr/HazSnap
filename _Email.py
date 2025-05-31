@@ -9,11 +9,11 @@ load_dotenv()
 MAILJET_API_KEY = os.getenv("MAILJET_API_KEY")
 MAILJET_API_SECRET = os.getenv("MAILJET_API_SECRET")
 SENDER_EMAIL = os.getenv("MAILJET_SENDER_EMAIL")
-TEST_SEND_EMAIL = True  # Hardcoded for testing — send email even if no changes detected
+TEST_SEND_EMAIL = True  # Set to False in production
 
 RECIPIENTS = [
     "yassine.jebrane@gmail.com",
-    # Add more emails here if needed
+    # Add more emails if needed
 ]
 
 def send_email_mailjet_template(template_id, variables, subject, recipient):
@@ -37,15 +37,18 @@ def send_email_mailjet_template(template_id, variables, subject, recipient):
     )
 
     if response.status_code == 200:
-        print(f"✅ Template email sent to {recipient}")
+        print(f"✅ Email sent to {recipient}")
     else:
-        print(f"❌ Failed to send template email to {recipient}: {response.text}")
+        print(f"❌ Failed to send email to {recipient}: {response.text}")
 
 def generate_diff_report(file_new, file_old):
     try:
         df_old = pd.read_csv(file_old)
         df_new = pd.read_csv(file_new)
         key_cols = ["Substance name", "CAS no"]
+
+        if not set(key_cols).issubset(df_old.columns) or not set(key_cols).issubset(df_new.columns):
+            return "Error: Required columns not found in CSV files."
 
         df_old.set_index(key_cols, inplace=True)
         df_new.set_index(key_cols, inplace=True)
@@ -58,28 +61,31 @@ def generate_diff_report(file_new, file_old):
 
         summary = []
         if not new_entries.empty:
-            summary.append(f"🆕 New entries: {len(new_entries)}")
+            summary.append(f"<li><strong>🆕 New entries:</strong> {len(new_entries)}</li>")
         if not removed_entries.empty:
-            summary.append(f"❌ Removed entries: {len(removed_entries)}")
+            summary.append(f"<li><strong>❌ Removed entries:</strong> {len(removed_entries)}</li>")
         if not changed_entries.empty:
-            summary.append(f"🔄 Changed entries: {len(changed_entries)}")
+            summary.append(f"<li><strong>🔄 Changed entries:</strong> {len(changed_entries)}</li>")
 
         if not summary:
-            return None  # No changes detected
+            return None
 
-        # Compose summary string for template variable
-        detailed_changes = "\n".join(summary) + "\n\n"
+        html_report = "<ul>" + "".join(summary) + "</ul>"
+
+        def to_html(df, title):
+            return f"<h4>{title}</h4>" + df.reset_index().head(5).to_html(index=False, border=1)
+
         if not new_entries.empty:
-            detailed_changes += f"New Entries Sample:\n{new_entries.reset_index().head(5).to_string(index=False)}\n\n"
+            html_report += to_html(new_entries, "New Entries Sample")
         if not removed_entries.empty:
-            detailed_changes += f"Removed Entries Sample:\n{removed_entries.reset_index().head(5).to_string(index=False)}\n\n"
+            html_report += to_html(removed_entries, "Removed Entries Sample")
         if not changed_entries.empty:
-            detailed_changes += f"Changed Entries Sample:\n{changed_entries.reset_index().head(5).to_string(index=False)}\n"
+            html_report += to_html(changed_entries, "Changed Entries Sample")
 
-        return detailed_changes
+        return html_report
 
     except Exception as e:
-        return f"Error generating diff: {e}"
+        return f"<p>Error generating diff: {e}</p>"
 
 def main():
     today = datetime.now()
@@ -89,39 +95,38 @@ def main():
     file_old = os.path.join("Data", f"clh_snapshot_{yesterday.strftime('%Y-%m-%d')}.csv")
 
     if not os.path.isfile(file_new):
-        print(f"❌ Required CSV file not found: {file_new}")
+        print(f"❌ Missing file: {file_new}")
         return
     if not os.path.isfile(file_old):
-        print(f"❌ Required CSV file not found: {file_old}")
+        print(f"❌ Missing file: {file_old}")
         return
 
     report = generate_diff_report(file_new, file_old)
-    template_id = 7028286  # <-- Replace with your Mailjet template ID
+    template_id = 7028286  # Your Mailjet template ID
+
+    subject = f"ECHA Monitor – Changes for {today.strftime('%Y-%m-%d')}"
 
     if report is None:
         if TEST_SEND_EMAIL:
-            print("⚠️ No changes detected, but TEST_SEND_EMAIL=True, sending test email anyway.")
-            # Prepare preview content for testing
-            df_new = pd.read_csv(file_new)
-            preview_html = df_new.head(10).to_html(index=False, border=1)
+            print("⚠️ No changes detected, sending test email due to TEST_SEND_EMAIL=True.")
+            df_preview = pd.read_csv(file_new)
+            preview_html = df_preview.head(10).to_html(index=False, border=1)
 
-            subject = f"ECHA Monitor – Test email for {today.strftime('%Y-%m-%d')}"
             variables = {
                 "content": preview_html,
-                "footer": "This is a test email sent even when no changes are detected."
+                "footer": "This is a test email – no changes were detected in today's snapshot."
             }
 
             for email in RECIPIENTS:
                 send_email_mailjet_template(template_id, variables, subject, email)
         else:
-            print("✅ No changes detected. No email sent.")
+            print("✅ No changes detected – no email sent.")
         return
 
-    # If changes detected, send real report email
-    subject = f"ECHA Monitor – Changes for {today.strftime('%Y-%m-%d')}"
+    # Send actual report with changes
     variables = {
         "content": report,
-        "footer": "This email lists detected changes in the CLH registry snapshot."
+        "footer": "This email lists changes detected in the daily CLH registry snapshot."
     }
 
     for email in RECIPIENTS:
