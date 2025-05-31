@@ -1,7 +1,6 @@
 import pandas as pd
 from mailjet_rest import Client
 import os
-import json
 
 ESSENTIAL_COLS = ['Substance name', 'CAS no', 'Status', 'Submitter', 'Latest update']
 
@@ -48,24 +47,22 @@ def generate_email_body(new_df, removed_df, changed_df):
     changed_count = len(changed_df)
 
     summary = (
-        f"🆕 New entries: {new_count}\n"
-        f"❌ Removed entries: {removed_count}\n"
-        f"🔄 Changed entries: {changed_count}\n"
+        f"🆕 New entries: {new_count}<br>"
+        f"❌ Removed entries: {removed_count}<br>"
+        f"🔄 Changed entries: {changed_count}<br>"
     )
 
     new_html = format_sample_html(new_df, "New Entries Sample") if new_count else ""
     removed_html = format_sample_html(removed_df, "Removed Entries Sample") if removed_count else ""
     changed_html = format_sample_html(changed_df, "Changed Entries Sample") if changed_count else ""
 
-    # Combine everything as a single string to pass as a variable
     full_html = f"{summary}<br>{new_html}{removed_html}{changed_html}"
     return full_html
 
-def send_email(subject, html_content):
+def send_email(subject, html_content, footer_html=""):
     api_key = os.getenv("MAILJET_API_KEY")
     api_secret = os.getenv("MAILJET_API_SECRET")
     sender_email = os.getenv("MAILJET_SENDER_EMAIL")
-    recipient_email = sender_email  # Or use another recipient
 
     mailjet = Client(auth=(api_key, api_secret), version='v3.1')
 
@@ -76,24 +73,21 @@ def send_email(subject, html_content):
                     "Email": sender_email,
                     "Name": "CLH Monitor"
                 },
-                "To": [
-                    {
-                        "Email": recipient_email,
-                        "Name": "Reg Affairs"
-                    }
-                ],
+                # Send to contact list by ID instead of individual email
+                "ContactsListID": 10530945,
                 "TemplateID": 7028286,
                 "TemplateLanguage": True,
                 "Subject": subject,
                 "Variables": {
-                    "content": html_content  # Adjust variable name to match your Mailjet template placeholder
+                    "content": html_content,
+                    "footer": footer_html
                 }
             }
         ]
     }
 
     result = mailjet.send.create(data=data)
-    print("Email sent:", result.status_code)
+    print("Email sent status code:", result.status_code)
     print(result.json())
 
 if __name__ == "__main__":
@@ -108,4 +102,5 @@ if __name__ == "__main__":
     ])
 
     body_html = generate_email_body(df_new, df_removed, df_changed)
-    send_email("🧪 CLH Changes Detected – 31 May 2025", body_html)
+    footer_html = "<p>CLH Monitor &copy; 2025</p>"  # Customize your footer here
+    send_email("🧪 CLH Changes Detected – 31 May 2025", body_html, footer_html)
