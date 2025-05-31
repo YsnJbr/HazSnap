@@ -9,7 +9,7 @@ load_dotenv()
 MAILJET_API_KEY = os.getenv("MAILJET_API_KEY")
 MAILJET_API_SECRET = os.getenv("MAILJET_API_SECRET")
 SENDER_EMAIL = os.getenv("MAILJET_SENDER_EMAIL")
-TEST_SEND_EMAIL = True  # Send email even if no changes detected
+TEST_SEND_EMAIL = True  # Set to False in production
 
 RECIPIENTS = [
     "yassine.jebrane@gmail.com",
@@ -39,15 +39,15 @@ def send_email_mailjet_template(template_id, variables, subject, recipient):
     )
 
     if response.status_code == 200:
-        print(f"✅ Template email sent to {recipient}")
+        print(f"✅ Email sent to {recipient}")
     else:
-        print(f"❌ Failed to send template email to {recipient}: {response.text}")
+        print(f"❌ Failed to send email to {recipient}: {response.text}")
 
-def format_sample(df, title):
+def format_sample_html(df, title):
     df_reset = df.reset_index()
     cols_to_show = [col for col in ESSENTIAL_COLS if col in df_reset.columns]
-    formatted = df_reset[cols_to_show].head(5).to_string(index=False)
-    return f"{title}:\n{formatted}\n\n"
+    html_table = df_reset[cols_to_show].head(5).to_html(index=False, escape=False, border=1)
+    return f"<h3>{title}</h3>{html_table}<br>"
 
 def generate_diff_report(file_new, file_old):
     try:
@@ -75,18 +75,18 @@ def generate_diff_report(file_new, file_old):
         if not summary:
             return None  # No changes
 
-        detailed_changes = "\n".join(summary) + "\n\n"
+        report = "<p>" + "<br>".join(summary) + "</p><br>"
         if not new_entries.empty:
-            detailed_changes += format_sample(new_entries, "New Entries Sample")
+            report += format_sample_html(new_entries, "New Entries Sample")
         if not removed_entries.empty:
-            detailed_changes += format_sample(removed_entries, "Removed Entries Sample")
+            report += format_sample_html(removed_entries, "Removed Entries Sample")
         if not changed_entries.empty:
-            detailed_changes += format_sample(changed_entries, "Changed Entries Sample")
+            report += format_sample_html(changed_entries, "Changed Entries Sample")
 
-        return detailed_changes
+        return report
 
     except Exception as e:
-        return f"Error generating diff: {e}"
+        return f"<p>Error generating diff: {e}</p>"
 
 def main():
     today = datetime.now()
@@ -96,10 +96,10 @@ def main():
     file_old = os.path.join("Data", f"clh_snapshot_{yesterday.strftime('%Y-%m-%d')}.csv")
 
     if not os.path.isfile(file_new):
-        print(f"❌ Required CSV file not found: {file_new}")
+        print(f"❌ Missing: {file_new}")
         return
     if not os.path.isfile(file_old):
-        print(f"❌ Required CSV file not found: {file_old}")
+        print(f"❌ Missing: {file_old}")
         return
 
     report = generate_diff_report(file_new, file_old)
@@ -107,26 +107,26 @@ def main():
 
     if report is None:
         if TEST_SEND_EMAIL:
-            print("⚠️ No changes detected, but TEST_SEND_EMAIL=True, sending test email anyway.")
+            print("⚠️ No changes, but TEST_SEND_EMAIL=True – sending preview.")
             df_new = pd.read_csv(file_new)
-            preview_html = df_new.head(10)[ESSENTIAL_COLS].to_string(index=False)
+            preview_html = df_new.head(10)[ESSENTIAL_COLS].to_html(index=False, escape=False, border=1)
 
-            subject = f"ECHA Monitor – Test email for {today.strftime('%Y-%m-%d')}"
+            subject = f"ECHA Monitor – No changes for {today.strftime('%Y-%m-%d')}"
             variables = {
                 "content": preview_html,
-                "footer": "This is a test email sent even when no changes are detected."
+                "footer": "This is a test email (no changes detected)."
             }
 
             for email in RECIPIENTS:
                 send_email_mailjet_template(template_id, variables, subject, email)
         else:
-            print("✅ No changes detected. No email sent.")
+            print("✅ No changes – no email sent.")
         return
 
     subject = f"ECHA Monitor – Changes for {today.strftime('%Y-%m-%d')}"
     variables = {
         "content": report,
-        "footer": "This email lists detected changes in the CLH registry snapshot."
+        "footer": "This email lists changes detected in the CLH registry snapshot."
     }
 
     for email in RECIPIENTS:
