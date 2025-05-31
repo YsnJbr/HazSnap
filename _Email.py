@@ -60,49 +60,54 @@ def generate_email_body(new_df, removed_df, changed_df):
     return full_html
 
 def get_contacts_from_list(mailjet_client, contact_list_id):
-    # Fetch contacts in your Mailjet list via API
-    # Note: This only gets emails, you may enhance to get names or other details
-    response = mailjet_client.contactslist_managecontacts.get(id=contact_list_id)
+    # Correct endpoint to get contacts in a list
+    response = mailjet_client.contactslist_managecontact.get(id=contact_list_id)
     if response.status_code != 200:
-        raise Exception(f"Failed to fetch contacts: {response.status_code} {response.json()}")
+        raise Exception(f"Failed to fetch contacts: {response.status_code} {response.text}")
 
     contacts = response.json().get('Data', [])
-    return [{"Email": c["Email"], "Name": c.get("Name", "")} for c in contacts]
+    return [{"Email": c["ContactEmail"], "Name": c.get("Name", "")} for c in contacts]
 
 def send_transactional_email(subject, html_content, footer_html, contact_list_id):
     api_key = os.getenv("MAILJET_API_KEY")
     api_secret = os.getenv("MAILJET_API_SECRET")
     sender_email = os.getenv("MAILJET_SENDER_EMAIL")
-    template_id = 7028286  # Your transactional template ID
 
     mailjet = Client(auth=(api_key, api_secret), version='v3.1')
 
-    # Get recipients from the contact list
     contacts = get_contacts_from_list(mailjet, contact_list_id)
-    if not contacts:
-        print("No contacts found in the list.")
-        return
 
-    # Compose message data
-    data = {
-        "Messages": [
-            {
-                "From": {"Email": sender_email, "Name": "CLH Monitor"},
-                "To": contacts,
-                "TemplateID": template_id,
-                "TemplateLanguage": True,
-                "Subject": subject,
-                "Variables": {
-                    "content": html_content,
-                    "footer": footer_html
+    template_id = 7028286  # Your Mailjet transactional template ID
+
+    for contact in contacts:
+        data = {
+            "Messages": [
+                {
+                    "From": {
+                        "Email": sender_email,
+                        "Name": "CLH Monitor"
+                    },
+                    "To": [
+                        {
+                            "Email": contact["Email"],
+                            "Name": contact["Name"] or "Valued Recipient"
+                        }
+                    ],
+                    "TemplateID": template_id,
+                    "TemplateLanguage": True,
+                    "Subject": subject,
+                    "Variables": {
+                        "content": html_content,
+                        "footer": footer_html
+                    }
                 }
-            }
-        ]
-    }
+            ]
+        }
 
-    result = mailjet.send.create(data=data)
-    print("Email sent status code:", result.status_code)
-    print(result.json())
+        response = mailjet.send.create(data=data)
+        print(f"Sent to {contact['Email']}: status {response.status_code}")
+        if response.status_code != 200:
+            print("Response content:", response.json())
 
 if __name__ == "__main__":
     df_new = pd.DataFrame([
@@ -117,8 +122,8 @@ if __name__ == "__main__":
 
     body_html = generate_email_body(df_new, df_removed, df_changed)
     footer_html = "<p>CLH Monitor &copy; 2025</p>"
-    subject = "🧪 CLH Changes Detected – 31 May 2025"
 
-    contact_list_id = 10530945  # Your Mailjet contact list ID
+    subject = "🧪 CLH Changes Detected – 31 May 2025"
+    contact_list_id = 10530945  # Your contact list ID
 
     send_transactional_email(subject, body_html, footer_html, contact_list_id)
