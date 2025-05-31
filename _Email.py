@@ -21,11 +21,12 @@ def format_sample_html(df, title):
     styles = """
     <style>
     .styled-table {
-        width: 100%;
+        width: 800px;           /* fixed width for all tables */
         border-collapse: collapse;
         margin: 10px 0;
         font-size: 14px;
         font-family: Arial, sans-serif;
+        table-layout: fixed;    /* enforce fixed layout so column widths apply */
     }
     .styled-table th, .styled-table td {
         border: 1px solid #dddddd;
@@ -33,20 +34,22 @@ def format_sample_html(df, title):
         padding: 6px;
         vertical-align: top;
         word-wrap: break-word;
+        overflow-wrap: break-word;  /* better word wrapping */
     }
     .styled-table th {
         background-color: #f2f2f2;
         text-align: center;
     }
-    .styled-table td:nth-child(1) { width: 30%; }
-    .styled-table td:nth-child(2) { width: 12%; }
-    .styled-table td:nth-child(3) { width: 18%; }
-    .styled-table td:nth-child(4) { width: 15%; }
-    .styled-table td:nth-child(5) { width: 15%; }
+    .styled-table td:nth-child(1) { width: 240px; }   /* 30% of 800px */
+    .styled-table td:nth-child(2) { width: 96px; }    /* 12% of 800px */
+    .styled-table td:nth-child(3) { width: 144px; }   /* 18% of 800px */
+    .styled-table td:nth-child(4) { width: 120px; }   /* 15% of 800px */
+    .styled-table td:nth-child(5) { width: 120px; }   /* 15% of 800px */
     </style>
     """
 
     return f"<h3>{title}</h3>{styles}{table_html}<br>"
+
 
 def generate_email_body(new_df, removed_df, changed_df):
     summary = (
