@@ -59,36 +59,50 @@ def generate_email_body(new_df, removed_df, changed_df):
     full_html = f"{summary}<br>{new_html}{removed_html}{changed_html}"
     return full_html
 
-def update_campaign_and_send(subject, html_content, footer_html=""):
+def get_contacts_from_list(mailjet_client, contact_list_id):
+    # Fetch contacts in your Mailjet list via API
+    # Note: This only gets emails, you may enhance to get names or other details
+    response = mailjet_client.contactslist_managecontacts.get(id=contact_list_id)
+    if response.status_code != 200:
+        raise Exception(f"Failed to fetch contacts: {response.status_code} {response.json()}")
+
+    contacts = response.json().get('Data', [])
+    return [{"Email": c["Email"], "Name": c.get("Name", "")} for c in contacts]
+
+def send_transactional_email(subject, html_content, footer_html, contact_list_id):
     api_key = os.getenv("MAILJET_API_KEY")
     api_secret = os.getenv("MAILJET_API_SECRET")
+    sender_email = os.getenv("MAILJET_SENDER_EMAIL")
+    template_id = 7028286  # Your transactional template ID
 
-    # Mailjet Client version v3 (required for campaigns API)
-    mailjet = Client(auth=(api_key, api_secret), version='v3')
+    mailjet = Client(auth=(api_key, api_secret), version='v3.1')
 
-    campaign_id = 7028286  # Your campaign ID
-
-    # Step 1: Update campaign with new variables and subject
-    update_data = {
-        "Subject": subject,
-        "Variables": {
-            "content": html_content,
-            "footer": footer_html
-        }
-    }
-
-    print(f"Updating campaign {campaign_id}...")
-    update_response = mailjet.campaign.update(id=campaign_id, data=update_data)
-    print("Update response:", update_response.status_code, update_response.json())
-
-    if update_response.status_code != 200:
-        print("Failed to update campaign. Check API key permissions and campaign ID.")
+    # Get recipients from the contact list
+    contacts = get_contacts_from_list(mailjet, contact_list_id)
+    if not contacts:
+        print("No contacts found in the list.")
         return
 
-    # Step 2: Send the campaign to its contact list
-    print(f"Sending campaign {campaign_id}...")
-    send_response = mailjet.campaign.send(id=campaign_id)
-    print("Send response:", send_response.status_code, send_response.json())
+    # Compose message data
+    data = {
+        "Messages": [
+            {
+                "From": {"Email": sender_email, "Name": "CLH Monitor"},
+                "To": contacts,
+                "TemplateID": template_id,
+                "TemplateLanguage": True,
+                "Subject": subject,
+                "Variables": {
+                    "content": html_content,
+                    "footer": footer_html
+                }
+            }
+        ]
+    }
+
+    result = mailjet.send.create(data=data)
+    print("Email sent status code:", result.status_code)
+    print(result.json())
 
 if __name__ == "__main__":
     df_new = pd.DataFrame([
@@ -103,7 +117,8 @@ if __name__ == "__main__":
 
     body_html = generate_email_body(df_new, df_removed, df_changed)
     footer_html = "<p>CLH Monitor &copy; 2025</p>"
-
     subject = "🧪 CLH Changes Detected – 31 May 2025"
 
-    update_campaign_and_send(subject, body_html, footer_html)
+    contact_list_id = 10530945  # Your Mailjet contact list ID
+
+    send_transactional_email(subject, body_html, footer_html, contact_list_id)
