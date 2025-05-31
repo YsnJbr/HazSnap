@@ -60,13 +60,13 @@ def generate_email_body(new_df, removed_df, changed_df):
     return full_html
 
 def get_contacts_from_list(mailjet_client, contact_list_id):
-    # Correct endpoint to get contacts in a list
-    response = mailjet_client.contactslist_managecontact.get(id=contact_list_id)
+    response = mailjet_client.get(f"contactslist/{contact_list_id}/managecontact")
     if response.status_code != 200:
         raise Exception(f"Failed to fetch contacts: {response.status_code} {response.text}")
 
     contacts = response.json().get('Data', [])
     return [{"Email": c["ContactEmail"], "Name": c.get("Name", "")} for c in contacts]
+
 
 def send_transactional_email(subject, html_content, footer_html, contact_list_id):
     api_key = os.getenv("MAILJET_API_KEY")
