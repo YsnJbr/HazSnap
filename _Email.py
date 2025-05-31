@@ -1,68 +1,15 @@
 import os
-import requests
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
 from mailjet_rest import Client
 
-# ---------------------- Config ----------------------
+# ========== CONFIGURATION ==========
 ESSENTIAL_COLS = ['Substance name', 'CAS no', 'Status', 'Submitter', 'Latest update']
 DATA_DIR = "Data"
-CONTACT_LIST_ID = 10530945
 TEMPLATE_ID = 7028286
-# ----------------------------------------------------
+CONTACT_LIST_ID = 10530945  # Replace with your actual list ID
 
-def download_clh_snapshot():
-    print("Downloading CLH Snapshot...")
-
-    url = "https://echa.europa.eu/fr/registry-of-clh-intentions-until-outcome"
-    headers = {"User-Agent": "Mozilla/5.0"}
-
-    response = requests.get(url, headers=headers)
-    if response.status_code != 200:
-        raise Exception(f"Failed to download snapshot: {response.status_code}")
-
-    os.makedirs(DATA_DIR, exist_ok=True)
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    html_path = os.path.join(DATA_DIR, f"clh_snapshot_{today_str}.html")
-    csv_path = os.path.join(DATA_DIR, f"clh_snapshot_{today_str}.csv")
-
-    with open(html_path, "w", encoding="utf-8") as f:
-        f.write(response.text)
-
-    tables = pd.read_html(response.text)
-    df = tables[0].dropna(how="all")
-    df.columns = df.columns.str.strip()
-    df = df.loc[:, df.columns.notna()]
-    df = df.loc[:, df.columns != 'Unnamed: 0']
-    df = df.dropna(axis=1, how='all')
-
-    df.to_csv(csv_path, index=False)
-    print(f"Snapshot saved to {csv_path}")
-    return df, csv_path
-
-def get_previous_csv(latest_csv):
-    all_csvs = sorted(
-        [f for f in os.listdir(DATA_DIR) if f.endswith(".csv") and f != os.path.basename(latest_csv)],
-        reverse=True
-    )
-    return os.path.join(DATA_DIR, all_csvs[0]) if all_csvs else None
-
-def detect_changes(df_current, df_previous):
-    df_current_keyed = df_current.set_index("CAS no")
-    df_previous_keyed = df_previous.set_index("CAS no")
-
-    new = df_current_keyed.loc[~df_current_keyed.index.isin(df_previous_keyed.index)].reset_index()
-    removed = df_previous_keyed.loc[~df_previous_keyed.index.isin(df_current_keyed.index)].reset_index()
-    common = df_current_keyed.index.intersection(df_previous_keyed.index)
-
-    changed = []
-    for cas in common:
-        if not df_current_keyed.loc[cas].equals(df_previous_keyed.loc[cas]):
-            changed.append(df_current_keyed.loc[[cas]])
-
-    changed_df = pd.concat(changed).reset_index() if changed else pd.DataFrame(columns=df_current.columns)
-    return new, removed, changed_df
-
+# ========== FORMATTING ==========
 def format_sample_html(df, title):
     df_reset = df.reset_index(drop=True)
     cols_to_show = [col for col in ESSENTIAL_COLS if col in df_reset.columns]
@@ -90,8 +37,14 @@ def format_sample_html(df, title):
         background-color: #f2f2f2;
         text-align: center;
     }
+    .styled-table td:nth-child(1) { width: 30%; }
+    .styled-table td:nth-child(2) { width: 12%; }
+    .styled-table td:nth-child(3) { width: 18%; }
+    .styled-table td:nth-child(4) { width: 15%; }
+    .styled-table td:nth-child(5) { width: 15%; }
     </style>
     """
+
     return f"<h3>{title}</h3>{styles}{table_html}<br>"
 
 def generate_email_body(new_df, removed_df, changed_df):
@@ -101,54 +54,80 @@ def generate_email_body(new_df, removed_df, changed_df):
         f"🔄 Changed entries: {len(changed_df)}<br><br>"
     )
 
-    sections = ""
-    if not new_df.empty:
-        sections += format_sample_html(new_df, "New Entries Sample")
-    if not removed_df.empty:
-        sections += format_sample_html(removed_df, "Removed Entries Sample")
-    if not changed_df.empty:
-        sections += format_sample_html(changed_df, "Changed Entries Sample")
+    new_html = format_sample_html(new_df, "New Entries Sample") if not new_df.empty else ""
+    removed_html = format_sample_html(removed_df, "Removed Entries Sample") if not removed_df.empty else ""
+    changed_html = format_sample_html(changed_df, "Changed Entries Sample") if not changed_df.empty else ""
 
-    return summary + sections
+    return f"{summary}{new_html}{removed_html}{changed_html}"
 
+# ========== COMPARISON ==========
+def load_today_and_yesterday():
+    today_str = datetime.today().strftime("%Y-%m-%d")
+    yesterday_str = (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+
+    today_file = os.path.join(DATA_DIR, f"clh_snapshot_{today_str}.csv")
+    yesterday_file = os.path.join(DATA_DIR, f"clh_snapshot_{yesterday_str}.csv")
+
+    if not os.path.exists(today_file):
+        raise FileNotFoundError(f"Today's snapshot not found: {today_file}")
+    if not os.path.exists(yesterday_file):
+        raise FileNotFoundError(f"Yesterday's snapshot not found: {yesterday_file}")
+
+    df_today = pd.read_csv(today_file)
+    df_yesterday = pd.read_csv(yesterday_file)
+
+    return df_today, df_yesterday, today_str
+
+def compare_snapshots(df_today, df_yesterday):
+    join_cols = ['Substance name', 'CAS no']
+
+    df_today_keyed = df_today.set_index(join_cols)
+    df_yesterday_keyed = df_yesterday.set_index(join_cols)
+
+    new_rows = df_today_keyed.loc[~df_today_keyed.index.isin(df_yesterday_keyed.index)].reset_index()
+    removed_rows = df_yesterday_keyed.loc[~df_yesterday_keyed.index.isin(df_today_keyed.index)].reset_index()
+
+    common_index = df_today_keyed.index.intersection(df_yesterday_keyed.index)
+    changed_rows = df_today_keyed.loc[common_index][
+        (df_today_keyed.loc[common_index] != df_yesterday_keyed.loc[common_index]).any(axis=1)
+    ].reset_index()
+
+    return new_rows, removed_rows, changed_rows
+
+# ========== EMAIL ==========
 def get_contacts_from_list(contact_list_id):
     api_key = os.getenv("MAILJET_API_KEY")
     api_secret = os.getenv("MAILJET_API_SECRET")
-    mailjet = Client(auth=(api_key, api_secret), version='v3')
 
+    mailjet = Client(auth=(api_key, api_secret), version='v3')
     response = mailjet.contact.get()
+
     if response.status_code != 200:
         raise Exception(f"Failed to fetch contacts: {response.status_code} {response.text}")
 
-    all_contacts = response.json().get("Data", [])
-    subscribed_contacts = []
-
-    for contact in all_contacts:
+    contacts = []
+    for contact in response.json().get("Data", []):
         email = contact["Email"]
-        check_url = f"https://api.mailjet.com/v3/REST/contact/{email}/getcontactslists"
-        check_resp = requests.get(check_url, auth=(api_key, api_secret))
-
-        if check_resp.status_code == 200:
-            lists = check_resp.json().get("Data", [])
-            for item in lists:
-                if item["ListID"] == contact_list_id and item["IsUnsub"] is False:
-                    subscribed_contacts.append({"Email": email, "Name": contact.get("Name", "")})
+        resp = mailjet.get(f"/REST/contact/{email}/getcontactslists")
+        if resp.status_code == 200:
+            for item in resp.json().get("Data", []):
+                if item["ListID"] == contact_list_id and not item["IsUnsub"]:
+                    contacts.append({"Email": email, "Name": contact.get("Name", "")})
                     break
         else:
-            print(f"Warning: issue checking list for {email}: {check_resp.status_code}")
+            print(f"Warning: issue checking list for {email}: {resp.status_code}")
+    return contacts
 
-    return subscribed_contacts
-
-def send_transactional_email(subject, html_content, footer_html, contact_list_id):
+def send_transactional_email(subject, html_content, footer_html):
     api_key = os.getenv("MAILJET_API_KEY")
     api_secret = os.getenv("MAILJET_API_SECRET")
     sender_email = os.getenv("MAILJET_SENDER_EMAIL")
-    mailjet = Client(auth=(api_key, api_secret), version='v3.1')
 
-    contacts = get_contacts_from_list(contact_list_id)
+    mailjet = Client(auth=(api_key, api_secret), version='v3.1')
+    contacts = get_contacts_from_list(CONTACT_LIST_ID)
 
     for contact in contacts:
-        data = {
+        message = {
             "Messages": [
                 {
                     "From": {"Email": sender_email, "Name": "CLH Monitor"},
@@ -156,30 +135,28 @@ def send_transactional_email(subject, html_content, footer_html, contact_list_id
                     "TemplateID": TEMPLATE_ID,
                     "TemplateLanguage": True,
                     "Subject": subject,
-                    "Variables": {"content": html_content, "footer": footer_html}
+                    "Variables": {
+                        "content": html_content,
+                        "footer": footer_html
+                    }
                 }
             ]
         }
 
-        response = mailjet.send.create(data=data)
+        response = mailjet.send.create(data=message)
         print(f"Sent to {contact['Email']}: status {response.status_code}")
         if response.status_code != 200:
-            print("Response content:", response.json())
+            print("Response:", response.json())
 
+# ========== MAIN ==========
 if __name__ == "__main__":
-    df_today, latest_csv = download_clh_snapshot()
-    prev_csv = get_previous_csv(latest_csv)
+    df_today, df_yesterday, today_str = load_today_and_yesterday()
+    new_df, removed_df, changed_df = compare_snapshots(df_today, df_yesterday)
 
-    if prev_csv:
-        df_prev = pd.read_csv(prev_csv)
-        df_new, df_removed, df_changed = detect_changes(df_today, df_prev)
-
-        if any([not df_new.empty, not df_removed.empty, not df_changed.empty]):
-            body_html = generate_email_body(df_new, df_removed, df_changed)
-            footer_html = "<p>CLH Monitor &copy; 2025</p>"
-            subject = f"🧪 CLH Changes Detected – {datetime.now().strftime('%d %B %Y')}"
-            send_transactional_email(subject, body_html, footer_html, CONTACT_LIST_ID)
-        else:
-            print("No changes detected.")
+    if new_df.empty and removed_df.empty and changed_df.empty:
+        print("No changes detected — no emails sent.")
     else:
-        print("No previous CSV found. Skipping comparison.")
+        body_html = generate_email_body(new_df, removed_df, changed_df)
+        footer_html = "<p>CLH Monitor &copy; 2025</p>"
+        subject = f"🧪 CLH Changes Detected – {today_str}"
+        send_transactional_email(subject, body_html, footer_html)
