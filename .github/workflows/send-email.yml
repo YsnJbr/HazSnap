@@ -18,7 +18,7 @@ jobs:
           python-version: '3.10'
 
       - name: Install dependencies
-        run: pip install pandas python-dotenv requests
+        run: pip install -r requirements.txt
 
         # Debug step to verify env vars are set
       - name: Check environment variables
