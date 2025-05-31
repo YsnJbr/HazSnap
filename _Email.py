@@ -2,14 +2,15 @@ import os
 import pandas as pd
 from datetime import datetime, timedelta
 from mailjet_rest import Client
+import requests
 
 # ========== CONFIGURATION ==========
 ESSENTIAL_COLS = ['Substance name', 'CAS no', 'Status', 'Submitter', 'Latest update']
 DATA_DIR = "Data"
 TEMPLATE_ID = 7028286
-CONTACT_LIST_ID = 10530945  # Replace with your actual list ID
+CONTACT_LIST_ID = 10530945  # Replace with your actual Mailjet contact list ID
 
-# ========== FORMATTING ==========
+# ========== FORMAT HTML TABLE ==========
 def format_sample_html(df, title):
     df_reset = df.reset_index(drop=True)
     cols_to_show = [col for col in ESSENTIAL_COLS if col in df_reset.columns]
@@ -60,7 +61,7 @@ def generate_email_body(new_df, removed_df, changed_df):
 
     return f"{summary}{new_html}{removed_html}{changed_html}"
 
-# ========== COMPARISON ==========
+# ========== LOAD SNAPSHOTS ==========
 def load_today_and_yesterday():
     today_str = datetime.today().strftime("%Y-%m-%d")
     yesterday_str = (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d")
@@ -78,6 +79,7 @@ def load_today_and_yesterday():
 
     return df_today, df_yesterday, today_str
 
+# ========== COMPARE SNAPSHOTS ==========
 def compare_snapshots(df_today, df_yesterday):
     join_cols = ['Substance name', 'CAS no']
 
@@ -88,43 +90,56 @@ def compare_snapshots(df_today, df_yesterday):
     removed_rows = df_yesterday_keyed.loc[~df_yesterday_keyed.index.isin(df_today_keyed.index)].reset_index()
 
     common_index = df_today_keyed.index.intersection(df_yesterday_keyed.index)
-    changed_rows = df_today_keyed.loc[common_index][
-        (df_today_keyed.loc[common_index] != df_yesterday_keyed.loc[common_index]).any(axis=1)
-    ].reset_index()
+    changed_mask = (df_today_keyed.loc[common_index] != df_yesterday_keyed.loc[common_index]).any(axis=1)
+    changed_rows = df_today_keyed.loc[common_index][changed_mask].reset_index()
 
     return new_rows, removed_rows, changed_rows
 
-# ========== EMAIL ==========
+# ========== FETCH MAILJET CONTACTS ==========
 def get_contacts_from_list(contact_list_id):
     api_key = os.getenv("MAILJET_API_KEY")
     api_secret = os.getenv("MAILJET_API_SECRET")
+    base_url = "https://api.mailjet.com/v3"
 
-    mailjet = Client(auth=(api_key, api_secret), version='v3')
-    response = mailjet.contact.get()
+    # Step 1: get all contacts
+    url_contacts = f"{base_url}/REST/contact"
+    response = requests.get(url_contacts, auth=(api_key, api_secret))
 
     if response.status_code != 200:
         raise Exception(f"Failed to fetch contacts: {response.status_code} {response.text}")
 
-    contacts = []
-    for contact in response.json().get("Data", []):
+    all_contacts = response.json().get("Data", [])
+    subscribed_contacts = []
+
+    # Step 2: check each contact's lists to confirm membership in our list and not unsubscribed
+    for contact in all_contacts:
         email = contact["Email"]
-        resp = mailjet.get(f"/REST/contact/{email}/getcontactslists")
+        url_lists = f"{base_url}/REST/contact/{email}/getcontactslists"
+        resp = requests.get(url_lists, auth=(api_key, api_secret))
+
         if resp.status_code == 200:
-            for item in resp.json().get("Data", []):
-                if item["ListID"] == contact_list_id and not item["IsUnsub"]:
-                    contacts.append({"Email": email, "Name": contact.get("Name", "")})
+            lists = resp.json().get("Data", [])
+            for item in lists:
+                if item["ListID"] == contact_list_id and item["IsUnsub"] is False:
+                    subscribed_contacts.append({"Email": email, "Name": contact.get("Name", "")})
                     break
         else:
             print(f"Warning: issue checking list for {email}: {resp.status_code}")
-    return contacts
 
+    return subscribed_contacts
+
+# ========== SEND EMAIL ==========
 def send_transactional_email(subject, html_content, footer_html):
     api_key = os.getenv("MAILJET_API_KEY")
     api_secret = os.getenv("MAILJET_API_SECRET")
     sender_email = os.getenv("MAILJET_SENDER_EMAIL")
 
     mailjet = Client(auth=(api_key, api_secret), version='v3.1')
+
     contacts = get_contacts_from_list(CONTACT_LIST_ID)
+    if not contacts:
+        print("No subscribed contacts found, no emails will be sent.")
+        return
 
     for contact in contacts:
         message = {
@@ -146,11 +161,16 @@ def send_transactional_email(subject, html_content, footer_html):
         response = mailjet.send.create(data=message)
         print(f"Sent to {contact['Email']}: status {response.status_code}")
         if response.status_code != 200:
-            print("Response:", response.json())
+            print("Response content:", response.json())
 
 # ========== MAIN ==========
 if __name__ == "__main__":
-    df_today, df_yesterday, today_str = load_today_and_yesterday()
+    try:
+        df_today, df_yesterday, today_str = load_today_and_yesterday()
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        exit(1)
+
     new_df, removed_df, changed_df = compare_snapshots(df_today, df_yesterday)
 
     if new_df.empty and removed_df.empty and changed_df.empty:
