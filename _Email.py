@@ -1,7 +1,7 @@
 import pandas as pd
 from mailjet_rest import Client
 import os
-import requests  # added import
+import requests
 
 ESSENTIAL_COLS = ['Substance name', 'CAS no', 'Status', 'Submitter', 'Latest update']
 
@@ -64,15 +64,30 @@ def get_contacts_from_list(contact_list_id):
     api_key = os.getenv("MAILJET_API_KEY")
     api_secret = os.getenv("MAILJET_API_SECRET")
 
-    url = f"https://api.mailjet.com/v3/REST/contactslist/{contact_list_id}/contacts"
-    response = requests.get(url, auth=(api_key, api_secret))
+    mailjet = Client(auth=(api_key, api_secret), version='v3')
 
+    # Step 1: Get all contacts
+    response = mailjet.contact.get()
     if response.status_code != 200:
         raise Exception(f"Failed to fetch contacts: {response.status_code} {response.text}")
 
-    data = response.json()
-    contacts = data.get('Data', [])
-    return [{"Email": c["ContactEmail"], "Name": c.get("Name", "")} for c in contacts]
+    all_contacts = response.json().get("Data", [])
+    subscribed_contacts = []
+
+    # Step 2: Check subscription status for each contact
+    for contact in all_contacts:
+        email = contact["Email"]
+        check_url = f"https://api.mailjet.com/v3/REST/contactslist/{contact_list_id}/managecontact"
+        check_resp = requests.get(check_url, auth=(api_key, api_secret), params={"ContactEmail": email})
+
+        if check_resp.status_code == 200:
+            data = check_resp.json().get("Data", [])
+            if data and data[0].get("IsUnsub") is False:
+                subscribed_contacts.append({"Email": email, "Name": contact.get("Name", "")})
+        elif check_resp.status_code != 404:
+            print(f"Warning: issue checking list for {email}: {check_resp.status_code}")
+
+    return subscribed_contacts
 
 def send_transactional_email(subject, html_content, footer_html, contact_list_id):
     api_key = os.getenv("MAILJET_API_KEY")
@@ -81,7 +96,7 @@ def send_transactional_email(subject, html_content, footer_html, contact_list_id
 
     mailjet = Client(auth=(api_key, api_secret), version='v3.1')
 
-    contacts = get_contacts_from_list(contact_list_id)  # changed call here
+    contacts = get_contacts_from_list(contact_list_id)
 
     template_id = 7028286  # Your Mailjet transactional template ID
 
