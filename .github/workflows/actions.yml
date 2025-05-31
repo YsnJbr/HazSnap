@@ -39,7 +39,7 @@ jobs:
       - name: Commit and push changes
         run: |
           today=$(date -u +'%Y-%m-%d')
-          git add clh_snapshot_${today}.csv clh_snapshot_${today}.html
+          git add Data/clh_snapshot_${today}.csv Data/clh_snapshot_${today}.html
           git commit -m "Add daily CLH snapshot for $today" || echo "Nothing to commit"
 
           # Authenticate push with GitHub token
