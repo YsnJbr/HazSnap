@@ -5,7 +5,7 @@ import os
 ESSENTIAL_COLS = ['Substance name', 'CAS no', 'Status', 'Submitter', 'Latest update']
 
 def format_sample_html(df, title):
-    df_reset = df.reset_index()
+    df_reset = df.reset_index(drop=True)
     cols_to_show = [col for col in ESSENTIAL_COLS if col in df_reset.columns]
     df_display = df_reset[cols_to_show].head(5)
 
@@ -59,36 +59,36 @@ def generate_email_body(new_df, removed_df, changed_df):
     full_html = f"{summary}<br>{new_html}{removed_html}{changed_html}"
     return full_html
 
-def send_email(subject, html_content, footer_html=""):
+def update_campaign_and_send(subject, html_content, footer_html=""):
     api_key = os.getenv("MAILJET_API_KEY")
     api_secret = os.getenv("MAILJET_API_SECRET")
-    sender_email = os.getenv("MAILJET_SENDER_EMAIL")
 
-    mailjet = Client(auth=(api_key, api_secret), version='v3.1')
+    # Mailjet Client version v3 (required for campaigns API)
+    mailjet = Client(auth=(api_key, api_secret), version='v3')
 
-    data = {
-        "Messages": [
-            {
-                "From": {
-                    "Email": sender_email,
-                    "Name": "CLH Monitor"
-                },
-                # Send to contact list by ID instead of individual email
-                "ContactsListID": 10530945,
-                "TemplateID": 7028286,
-                "TemplateLanguage": True,
-                "Subject": subject,
-                "Variables": {
-                    "content": html_content,
-                    "footer": footer_html
-                }
-            }
-        ]
+    campaign_id = 7028286  # Your campaign ID
+
+    # Step 1: Update campaign with new variables and subject
+    update_data = {
+        "Subject": subject,
+        "Variables": {
+            "content": html_content,
+            "footer": footer_html
+        }
     }
 
-    result = mailjet.send.create(data=data)
-    print("Email sent status code:", result.status_code)
-    print(result.json())
+    print(f"Updating campaign {campaign_id}...")
+    update_response = mailjet.campaign.update(id=campaign_id, data=update_data)
+    print("Update response:", update_response.status_code, update_response.json())
+
+    if update_response.status_code != 200:
+        print("Failed to update campaign. Check API key permissions and campaign ID.")
+        return
+
+    # Step 2: Send the campaign to its contact list
+    print(f"Sending campaign {campaign_id}...")
+    send_response = mailjet.campaign.send(id=campaign_id)
+    print("Send response:", send_response.status_code, send_response.json())
 
 if __name__ == "__main__":
     df_new = pd.DataFrame([
@@ -102,5 +102,8 @@ if __name__ == "__main__":
     ])
 
     body_html = generate_email_body(df_new, df_removed, df_changed)
-    footer_html = "<p>CLH Monitor &copy; 2025</p>"  # Customize your footer here
-    send_email("🧪 CLH Changes Detected – 31 May 2025", body_html, footer_html)
+    footer_html = "<p>CLH Monitor &copy; 2025</p>"
+
+    subject = "🧪 CLH Changes Detected – 31 May 2025"
+
+    update_campaign_and_send(subject, body_html, footer_html)
