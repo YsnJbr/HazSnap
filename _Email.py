@@ -74,17 +74,19 @@ def get_contacts_from_list(contact_list_id):
     all_contacts = response.json().get("Data", [])
     subscribed_contacts = []
 
-    # Step 2: Check subscription status for each contact
+    # Step 2: Check if each contact is in the desired list
     for contact in all_contacts:
         email = contact["Email"]
-        check_url = f"https://api.mailjet.com/v3/REST/contactslist/{contact_list_id}/managecontact"
-        check_resp = requests.get(check_url, auth=(api_key, api_secret), params={"ContactEmail": email})
+        check_url = f"https://api.mailjet.com/v3/REST/contact/{email}/getcontactslists"
+        check_resp = requests.get(check_url, auth=(api_key, api_secret))
 
         if check_resp.status_code == 200:
-            data = check_resp.json().get("Data", [])
-            if data and data[0].get("IsUnsub") is False:
-                subscribed_contacts.append({"Email": email, "Name": contact.get("Name", "")})
-        elif check_resp.status_code != 404:
+            lists = check_resp.json().get("Data", [])
+            for item in lists:
+                if item["ListID"] == contact_list_id and item["IsUnsub"] is False:
+                    subscribed_contacts.append({"Email": email, "Name": contact.get("Name", "")})
+                    break  # No need to check further lists
+        else:
             print(f"Warning: issue checking list for {email}: {check_resp.status_code}")
 
     return subscribed_contacts
