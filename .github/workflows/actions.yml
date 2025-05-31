@@ -46,8 +46,11 @@ jobs:
           git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
 
           # Pull remote changes with rebase to avoid push rejection
-          git pull --rebase origin master || true
+          branch=$(git symbolic-ref --short HEAD)
 
-          git push origin master
+          git pull --rebase origin master || true
+          git pull --rebase origin "$branch" || true
+          git push origin "$branch"
+
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
