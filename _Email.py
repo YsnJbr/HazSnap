@@ -1,4 +1,5 @@
 import pandas as pd
+from mailjet_rest import Client
 import os
 
 ESSENTIAL_COLS = ['Substance name', 'CAS no', 'Status', 'Submitter', 'Latest update']
@@ -70,3 +71,47 @@ def generate_email_body(new_df, removed_df, changed_df):
     """
 
     return body
+
+
+def send_email(subject, html_content):
+    api_key = os.getenv("MAILJET_API_KEY")
+    api_secret = os.getenv("MAILJET_API_SECRET")
+    sender_email = os.getenv("MAILJET_SENDER_EMAIL")
+    recipient_email = sender_email  # Or another email
+
+    mailjet = Client(auth=(api_key, api_secret), version='v3.1')
+
+    data = {
+        'Messages': [{
+            "From": {
+                "Email": sender_email,
+                "Name": "CLH Monitor"
+            },
+            "To": [{
+                "Email": recipient_email,
+                "Name": "Reg Affairs"
+            }],
+            "Subject": subject,
+            "HTMLPart": html_content
+        }]
+    }
+
+    result = mailjet.send.create(data=data)
+    print("Email sent:", result.status_code)
+    print(result.json())
+
+
+if __name__ == "__main__":
+    # Mock test data (replace with your real diff logic)
+    df_new = pd.DataFrame([
+        {"Substance name": "Test Acid", "CAS no": "123-45-6", "Status": "Consultation", "Submitter": "Germany", "Latest update": "31-mai-2025"}
+    ])
+    df_removed = pd.DataFrame([
+        {"Substance name": "Old Compound", "CAS no": "654-32-1", "Status": "Opinion Development", "Submitter": "France", "Latest update": "01-mai-2025"}
+    ])
+    df_changed = pd.DataFrame([
+        {"Substance name": "Modified Agent", "CAS no": "111-22-3", "Status": "Opinion Development", "Submitter": "Sweden", "Latest update": "31-mai-2025"}
+    ])
+
+    body = generate_email_body(df_new, df_removed, df_changed)
+    send_email("🧪 CLH Changes Detected – 31 May 2025", body)
