@@ -64,7 +64,7 @@ def get_contacts_from_list(contact_list_id):
     api_key = os.getenv("MAILJET_API_KEY")
     api_secret = os.getenv("MAILJET_API_SECRET")
 
-    url = f"https://api.mailjet.com/v3/REST/contactslist/{contact_list_id}/managecontact"
+    url = f"https://api.mailjet.com/v3/REST/contactslist/{contact_list_id}/contacts"
     response = requests.get(url, auth=(api_key, api_secret))
 
     if response.status_code != 200:
