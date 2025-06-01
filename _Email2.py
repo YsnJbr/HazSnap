@@ -5,7 +5,7 @@ from mailjet_rest import Client
 import requests
 
 # ========== CONFIGURATION ==========
-ESSENTIAL_COLS = ['Substance name', 'CAS no', 'Status', 'Submitter', 'Latest update', 'Details']
+ESSENTIAL_COLS = ['Substance name', 'CAS no', 'Status', 'Submitter', 'Latest update']
 DATA_DIR = "Data"
 TEMPLATE_ID = 7028286
 CONTACT_LIST_ID = 10530945  # Your Mailjet contact list ID
@@ -18,26 +18,11 @@ def generate_email_body(new_df, removed_df, changed_df, df_today):
         f"🔄 Changed entries: {len(changed_df)}<br><br>"
     )
 
-    # Build preview with clickable links for top 5 entries
-    preview = df_today.head(5)
-    lines = []
-    for _, row in preview.iterrows():
-        substance = row.get('Substance name', 'N/A')
-        cas_no = row.get('CAS no', 'N/A')
-        status = row.get('Status', 'N/A')
-        submitter = row.get('Submitter', 'N/A')
-        latest_update = row.get('Latest update', 'N/A')
-        details_link = row.get('Details', '')
-        
-        # Use the existing HTML anchor tag in 'Details' column
-        # If it's raw URL instead of HTML, you can create the anchor here
-        line = (f"- <strong>{substance}</strong> (CAS: {cas_no}), Status: {status}, "
-                f"Submitter: {submitter}, Updated: {latest_update} — {details_link}")
-        lines.append(line)
+    preview_df = df_today[ESSENTIAL_COLS].copy().head(5)
+    preview_lines = preview_df.to_string(index=False)
+    preview_html = f"<pre>{preview_lines}</pre><br>"
 
-    preview_html = "<br>".join(lines)
-
-    return summary + "<b>Today's Snapshot – Preview (Top 5 entries):</b><br>" + preview_html + "<br><br>"
+    return summary + "<b>Today's Snapshot – Preview (Top 5 entries):</b><br>" + preview_html
 
 # ========== LOAD SNAPSHOTS ==========
 def load_today_and_yesterday():
