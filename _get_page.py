@@ -7,10 +7,12 @@ from lxml import html
 def main():
     print("Downloading CLH Snapshot and Extracting Detail Links...")
 
+    # Base URLs
     base_url = "https://echa.europa.eu"
     page_url = f"{base_url}/fr/registry-of-clh-intentions-until-outcome"
     link_constant = "https://echa.europa.eu/registry-of-clh-intentions-until-outcome/-/dislist/details/"
 
+    # HTTP headers to simulate a real browser
     headers = {
         "User-Agent": (
             "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -23,31 +25,36 @@ def main():
         "Connection": "keep-alive",
     }
 
+    # Download the webpage
     response = requests.get(page_url, headers=headers)
     if response.status_code != 200:
         print(f"Failed to download page. Status code: {response.status_code}")
         return
 
+    # Create output paths
     today_str = datetime.now().strftime("%Y-%m-%d")
     os.makedirs("Data", exist_ok=True)
     html_path = f"Data/clh_snapshot_{today_str}.html"
     csv_path = f"Data/clh_snapshot_{today_str}.csv"
 
+    # Save HTML snapshot locally
     with open(html_path, "w", encoding="utf-8") as f:
         f.write(response.text)
     print(f"HTML saved to: {html_path}")
 
+    # Try to extract the table using pandas
     try:
-        df = pd.read_html(response.text)[0]
-        df = df.dropna(how='all')
-        df.columns = df.columns.str.strip()
-        df = df.loc[:, df.columns.notna()]
-        df = df.loc[:, df.columns != 'Unnamed: 0']
-        df = df.dropna(axis=1, how='all')
+        df = pd.read_html(response.text)[0]  # Extract first table
+        df = df.dropna(how='all')  # Drop completely empty rows
+        df.columns = df.columns.str.strip()  # Clean column names
+        df = df.loc[:, df.columns.notna()]  # Drop unnamed/NaN columns
+        df = df.loc[:, df.columns != 'Unnamed: 0']  # Drop auto-generated index column if any
+        df = df.dropna(axis=1, how='all')  # Drop columns that are fully empty
     except Exception as e:
         print(f"Error reading table: {e}")
         return
 
+    # Parse detail links using XPath
     tree = html.fromstring(response.content)
     table_rows = tree.xpath('//table//tr[position()>1]')
 
@@ -65,13 +72,22 @@ def main():
             detail_links.append("")
             link_ids.append("")
 
+    # Add raw links and IDs to DataFrame
     df["Details Link"] = detail_links
     df["Link ID"] = link_ids
     df["Link Constant"] = link_constant
+
+    # Add clickable HTML 'Details' column
+    
     df["Details"] = df["Link ID"].apply(
         lambda link_id: f'<a href="{link_constant}{link_id}" target="_blank">Details</a>' if link_id else ""
     )
 
+    # Remove unnecessary columns before saving
+    columns_to_drop = ["Unnamed: 7", "Details Link", "Link Constant"]
+    df = df.drop(columns=[col for col in columns_to_drop if col in df.columns])
+
+    # Save final CSV
     df.to_csv(csv_path, index=False)
     print(f"CSV with detail links saved to: {csv_path}")
 
