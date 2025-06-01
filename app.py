@@ -6,16 +6,12 @@ import os
 st.title("HazSnap")
 st.markdown("### *Creating time for you 🧪📸*")
 
-
-
 # Generate filenames based on today and yesterday's date
 today = datetime.now()
 yesterday = today - timedelta(days=1)
 
 file_new = os.path.join("Data", f"clh_snapshot_{today.strftime('%Y-%m-%d')}.csv")
 file_old = os.path.join("Data", f"clh_snapshot_{yesterday.strftime('%Y-%m-%d')}.csv")
-
-
 
 # Check if files exist
 if not os.path.isfile(file_old):
@@ -26,7 +22,7 @@ else:
     try:
         df_old = pd.read_csv(file_old)
         df_new = pd.read_csv(file_new)
-        st.success(f"📅 ✅ Update for {today.strftime('%Y-%m-%d')} sucussfully reflected vs. yesterday")
+        st.success(f"📅 ✅ Update for {today.strftime('%Y-%m-%d')} successfully reflected vs. yesterday")
 
         # Composite key columns
         key_cols = ["Substance name", "CAS no"]
@@ -53,7 +49,7 @@ else:
             st.markdown(f"- ❌ Removed entries: **{len(removed_entries)}**")
             st.markdown(f"- 🔄 Changed entries: **{len(changed_entries)}**")
             st.markdown("---")
-            # Show message if no changes at all
+
             if len(new_entries) == 0 and len(removed_entries) == 0 and len(changed_entries) == 0:
                 st.info("No new changes detected ✅ - No news today, but silent efforts stir the unseen currents of tomorrow’s success, the story of diligence writes itself in unseen ink ✨")
 
@@ -69,8 +65,13 @@ else:
 
             st.markdown('---')
             st.title("Display today's preview")
-            # Display full today's dataset
             st.subheader(f"📋 Full List for {today.strftime('%Y-%m-%d')}")
-            st.dataframe(df_new.reset_index())
+
+            # Reset index for display
+            display_df = df_new.reset_index()
+
+            # Render HTML with clickable links (escape=False allows rendering)
+            st.markdown(display_df.to_html(escape=False, index=False), unsafe_allow_html=True)
+
     except Exception as e:
         st.error(f"An error occurred: {e}")
