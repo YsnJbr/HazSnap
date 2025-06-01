@@ -2,13 +2,14 @@ import os
 import requests
 from datetime import datetime
 import pandas as pd
-from lxml import html  # Lightweight alternative to BeautifulSoup
+from lxml import html
 
 def main():
     print("Downloading CLH Snapshot and Extracting Detail Links...")
 
     base_url = "https://echa.europa.eu"
     page_url = f"{base_url}/fr/registry-of-clh-intentions-until-outcome"
+    link_constant = "https://echa.europa.eu/registry-of-clh-intentions-until-outcome/-/dislist/details/"
 
     headers = {
         "User-Agent": (
@@ -51,16 +52,25 @@ def main():
     table_rows = tree.xpath('//table//tr[position()>1]')
 
     detail_links = []
+    link_ids = []
+
     for tr in table_rows:
         hrefs = tr.xpath('./td[last()]//a/@href')
         if hrefs:
             full_link = base_url + hrefs[0]
+            link_id = full_link.strip().split("/")[-1]
             detail_links.append(full_link)
+            link_ids.append(link_id)
         else:
             detail_links.append("")
+            link_ids.append("")
 
     df["Details Link"] = detail_links
-    df["Details"] = df["Details Link"].apply(lambda u: f'<a href="{u}" target="_blank">Details</a>' if u else "")
+    df["Link ID"] = link_ids
+    df["Link Constant"] = link_constant
+    df["Details"] = df["Link ID"].apply(
+        lambda link_id: f'<a href="{link_constant}{link_id}" target="_blank">Details</a>' if link_id else ""
+    )
 
     df.to_csv(csv_path, index=False)
     print(f"CSV with detail links saved to: {csv_path}")

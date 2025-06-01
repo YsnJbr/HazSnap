@@ -5,7 +5,7 @@ from mailjet_rest import Client
 import requests
 
 # ========== CONFIGURATION ==========
-ESSENTIAL_COLS = ['Substance name', 'CAS no', 'Status', 'Submitter', 'Latest update', 'Details']
+ESSENTIAL_COLS = ['Substance name', 'CAS no', 'Status', 'Submitter', 'Latest update', 'Details Link']
 DATA_DIR = "Data"
 TEMPLATE_ID = 7028286
 CONTACT_LIST_ID = 10530945  # Your Mailjet contact list ID
@@ -18,7 +18,7 @@ def generate_email_body(new_df, removed_df, changed_df, df_today):
         f"🔄 Changed entries: {len(changed_df)}<br><br>"
     )
 
-    # Build preview with clickable links for top 5 entries
+    # Top 5 preview entries
     preview = df_today.head(5)
     lines = []
     for _, row in preview.iterrows():
@@ -27,20 +27,22 @@ def generate_email_body(new_df, removed_df, changed_df, df_today):
         status = row.get('Status', 'N/A')
         submitter = row.get('Submitter', 'N/A')
         latest_update = row.get('Latest update', 'N/A')
-        details_url = row.get('Details', '').strip()
+        details_link = row.get('Details Link', '')
 
-        # Safely build hyperlink if details_url looks like a URL
-        if details_url.startswith("http"):
-            details_link = f'<a href="{details_url}" target="_blank">Details</a>'
+        # Create clickable hyperlink
+        if isinstance(details_link, str) and details_link.startswith("http"):
+            link_html = f'<a href="{details_link}" target="_blank">Details</a>'
         else:
-            details_link = "No link"
+            link_html = "No link"
 
-        line = (f"- <strong>{substance}</strong> (CAS: {cas_no}), Status: {status}, "
-                f"Submitter: {submitter}, Updated: {latest_update} — {details_link}")
+        line = (
+            f"- <strong>{substance}</strong> (CAS: {cas_no}), "
+            f"Status: {status}, Submitter: {submitter}, "
+            f"Updated: {latest_update} — {link_html}"
+        )
         lines.append(line)
 
     preview_html = "<br>".join(lines)
-
     return summary + "<b>Today's Snapshot – Preview (Top 5 entries):</b><br>" + preview_html + "<br><br>"
 
 
@@ -70,8 +72,6 @@ def compare_snapshots(df_today, df_yesterday):
     removed_rows = yesterday_set.loc[~yesterday_set.index.isin(today_set.index)].reset_index()
 
     common = today_set.index.intersection(yesterday_set.index)
-
-    # Align columns: take columns intersection, same order
     common_cols = today_set.columns.intersection(yesterday_set.columns).tolist()
     today_common = today_set.loc[common, common_cols]
     yesterday_common = yesterday_set.loc[common, common_cols]
@@ -80,7 +80,6 @@ def compare_snapshots(df_today, df_yesterday):
     changed_rows = today_common.loc[changed_mask].reset_index()
 
     return new_rows, removed_rows, changed_rows
-
 
 # ========== FETCH MAILJET CONTACTS ==========
 def get_contacts(contact_list_id):
