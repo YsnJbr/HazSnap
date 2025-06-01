@@ -65,10 +65,17 @@ def compare_snapshots(df_today, df_yesterday):
     removed_rows = yesterday_set.loc[~yesterday_set.index.isin(today_set.index)].reset_index()
 
     common = today_set.index.intersection(yesterday_set.index)
-    changed_mask = (today_set.loc[common] != yesterday_set.loc[common]).any(axis=1)
-    changed_rows = today_set.loc[common][changed_mask].reset_index()
+
+    # Align columns: take columns intersection, same order
+    common_cols = today_set.columns.intersection(yesterday_set.columns).tolist()
+    today_common = today_set.loc[common, common_cols]
+    yesterday_common = yesterday_set.loc[common, common_cols]
+
+    changed_mask = (today_common != yesterday_common).any(axis=1)
+    changed_rows = today_common.loc[changed_mask].reset_index()
 
     return new_rows, removed_rows, changed_rows
+
 
 # ========== FETCH MAILJET CONTACTS ==========
 def get_contacts(contact_list_id):
