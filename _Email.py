@@ -27,10 +27,14 @@ def generate_email_body(new_df, removed_df, changed_df, df_today):
         status = row.get('Status', 'N/A')
         submitter = row.get('Submitter', 'N/A')
         latest_update = row.get('Latest update', 'N/A')
-        details_link = row.get('Details', '')
-        
-        # Use the existing HTML anchor tag in 'Details' column
-        # If it's raw URL instead of HTML, you can create the anchor here
+        details_url = row.get('Details', '').strip()
+
+        # Safely build hyperlink if details_url looks like a URL
+        if details_url.startswith("http"):
+            details_link = f'<a href="{details_url}" target="_blank">Details</a>'
+        else:
+            details_link = "No link"
+
         line = (f"- <strong>{substance}</strong> (CAS: {cas_no}), Status: {status}, "
                 f"Submitter: {submitter}, Updated: {latest_update} — {details_link}")
         lines.append(line)
@@ -38,6 +42,7 @@ def generate_email_body(new_df, removed_df, changed_df, df_today):
     preview_html = "<br>".join(lines)
 
     return summary + "<b>Today's Snapshot – Preview (Top 5 entries):</b><br>" + preview_html + "<br><br>"
+
 
 # ========== LOAD SNAPSHOTS ==========
 def load_today_and_yesterday():
