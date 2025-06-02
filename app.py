@@ -74,7 +74,8 @@ else:
                         url = f"https://echa.europa.eu/registry-of-clh-intentions-until-outcome/-/dislist/details/{row['Link ID']}"
                         name = row["Substance name"]
                         cas = row["CAS no"]
-                        html_links += f'<li><strong>{name}</strong> ({cas}) - <a href="{url}" target="_blank">View 🔗</a></li>\n'
+                        date = row["Latest update"]
+                        html_links += f'<li><strong>{name}</strong> - CAS no({cas}) - {date} - <a href="{url}" target="_blank">View 🔗</a></li>\n'
                 if html_links:
                     st.markdown(f"#### 🔗 {section_title}")
                     st.markdown(f"<ul>{html_links}</ul>", unsafe_allow_html=True)
