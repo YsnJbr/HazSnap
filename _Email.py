@@ -12,27 +12,43 @@ CONTACT_LIST_ID = 10530945  # Your Mailjet contact list ID
 
 # ========== GENERATE EMAIL BODY ==========
 def generate_email_body(new_df, removed_df, changed_df):
-    def build_html_list(df, label):
+    def build_html_section(df, emoji, label, color):
         if df.empty:
-            return f"<p><strong>{label}:</strong> None</p>"
+            return f"<p style='margin:8px 0;'><strong>{emoji} {label}:</strong> <span style='color:gray;'>None</span></p>"
 
-        html_items = []
+        rows_html = ""
         for _, row in df.iterrows():
-            name = row.get('Substance name', 'N/A')
-            cas = row.get('CAS no', 'N/A')
-            date = row.get('Latest update', 'N/A')
+            name = row.get("Substance name", "N/A")
+            cas = row.get("CAS no", "N/A")
+            date = row.get("Latest update", "N/A")
 
-            html_items.append(f'<li><strong>{name}</strong> (CAS no: {cas}) - {date}</li>')
+            rows_html += (
+                f"<li style='margin-bottom:6px;'>"
+                f"<strong>{name}</strong> <span style='color:#666;'>(CAS: {cas})</span> – "
+                f"<span style='color:{color};'><em>{date}</em></span>"
+                f"</li>"
+            )
 
-        return f"<p><strong>{label} ({len(df)}):</strong></p><ul>{''.join(html_items)}</ul>"
+        return (
+            f"<h3 style='margin:20px 0 10px;'>{emoji} {label} ({len(df)}):</h3>"
+            f"<ul style='padding-left: 20px; margin-top: 5px;'>{rows_html}</ul>"
+        )
 
-    parts = [
-        build_html_list(new_df, "New entries"),
-        build_html_list(removed_df, "Removed entries"),
-        build_html_list(changed_df, "Changed entries"),
-    ]
-
-    return "<br>".join(parts)
+    html = f"""
+    <div style="font-family:Arial, sans-serif; font-size:15px; color:#222;">
+        <p style="font-size:16px; margin-bottom:20px;">
+            👋 Hello,<br>
+            Here is your daily update on <strong>CLH registry changes</strong>:
+        </p>
+        {build_html_section(new_df, "🆕", "New entries", "#007bff")}
+        {build_html_section(removed_df, "🗑️", "Removed entries", "#dc3545")}
+        {build_html_section(changed_df, "✏️", "Changed entries", "#ffc107")}
+        <p style="margin-top:30px; font-size:14px; color:#888;">
+            Stay safe,<br><strong>CLH Monitor</strong>
+        </p>
+    </div>
+    """
+    return html
 
 # ========== LOAD SNAPSHOTS ==========
 def load_today_and_yesterday():
