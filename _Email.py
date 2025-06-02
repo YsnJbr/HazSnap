@@ -44,7 +44,7 @@ def generate_email_body(new_df, removed_df, changed_df):
         {build_html_section(removed_df, "❌", "Removed entries", "#dc3545")}
         {build_html_section(changed_df, "🔄", "Changed entries", "#fd7e14")}
         <p style="margin-top:30px; font-size:14px; color:#888;">
-            HazSnap Team,<br><strong>Creating time for you</strong>, on f"{today_str}
+            HazSnap Team,<br><strong>Creating time for you</strong>,<br> on f"{today_str}"
         </p>
     </div>
     """
