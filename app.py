@@ -5,6 +5,18 @@ import os
 
 # --- Page setup ---
 st.set_page_config(page_title="HazSnap", layout="centered")
+st.markdown(
+    """
+    <style>
+        .main .block-container {
+            max-width: 800px;
+            margin: auto;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 st.title("HazSnap")
 st.markdown("### *Creating time for you*")
 
