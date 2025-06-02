@@ -94,7 +94,7 @@ else:
 
             # --- Show diffs + links ---
             show_table(changed_entries, "🔄 Changed Entries")
-            show_table(new_entries, "🆕 New Entries")
+            show_table(new_entries, "🚀 New Entries")
             show_table(removed_entries, "❌ Removed Entries")
 
             # --- Full Table ---

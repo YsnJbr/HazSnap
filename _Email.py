@@ -40,9 +40,9 @@ def generate_email_body(new_df, removed_df, changed_df):
             👋 Hello,<br>
             Here is your daily update on <strong>CLH registry changes</strong>:
         </p>
-        {build_html_section(new_df, "🆕", "New entries", "#007bff")}
-        {build_html_section(removed_df, "🗑️", "Removed entries", "#dc3545")}
-        {build_html_section(changed_df, "✏️", "Changed entries", "#ffc107")}
+        {build_html_section(new_df, "🚀", "New entries", "#007bff")}
+        {build_html_section(removed_df, "❌", "Removed entries", "#dc3545")}
+        {build_html_section(changed_df, "🔄", "Changed entries", "#fd7e14")}
         <p style="margin-top:30px; font-size:14px; color:#888;">
             Stay safe,<br><strong>CLH Monitor</strong>
         </p>
