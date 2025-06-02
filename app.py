@@ -6,7 +6,7 @@ import os
 # --- Page setup ---
 st.set_page_config(page_title="HazSnap", layout="wide")
 st.title("HazSnap")
-st.markdown("### *Creating time for you 🧪📸*")
+st.markdown("### *Creating time for you*")
 
 # --- Date setup ---
 today = datetime.now()
