@@ -5,11 +5,10 @@ from mailjet_rest import Client
 import requests
 
 # ========== CONFIGURATION ==========
-ESSENTIAL_COLS = ['Substance name', 'CAS no', 'Status', 'Submitter', 'Latest update', 'Details Link', 'Link ID']
+ESSENTIAL_COLS = ['Substance name', 'CAS no', 'Status', 'Submitter', 'Latest update']
 DATA_DIR = "Data"
 TEMPLATE_ID = 7028286
 CONTACT_LIST_ID = 10530945  # Your Mailjet contact list ID
-BASE_URL = "https://echa.europa.eu/registry-of-clh-intentions-until-outcome/-/dislist/details/"
 
 # ========== GENERATE EMAIL BODY ==========
 def generate_email_body(new_df, removed_df, changed_df):
@@ -23,19 +22,7 @@ def generate_email_body(new_df, removed_df, changed_df):
             cas = row.get('CAS no', 'N/A')
             date = row.get('Latest update', 'N/A')
 
-            # Determine the link URL: prefer Details Link, fallback to Link ID if exists
-            link = ""
-            if 'Details Link' in row and isinstance(row['Details Link'], str) and row['Details Link'].startswith("http"):
-                link = row['Details Link']
-            elif 'Link ID' in row and pd.notna(row['Link ID']):
-                link = BASE_URL + str(row['Link ID'])
-
-            if link:
-                link_html = f'<a href="{link}" target="_blank">View 🔗</a>'
-            else:
-                link_html = "No link"
-
-            html_items.append(f'<li><strong>{name}</strong> (CAS no: {cas}) - {date} - {link_html}</li>')
+            html_items.append(f'<li><strong>{name}</strong> (CAS no: {cas}) - {date}</li>')
 
         return f"<p><strong>{label} ({len(df)}):</strong></p><ul>{''.join(html_items)}</ul>"
 
@@ -104,12 +91,6 @@ def get_contacts(contact_list_id):
 
 # ========== SEND EMAIL ==========
 def send_email(subject, html_content, footer):
-    """
-    Sends personalized emails using a Mailjet template.
-    IMPORTANT:
-    - The Mailjet template must use {{var:content}} and {{var:footer}} (not triple braces).
-    - HTML in these variables will be inserted as raw HTML.
-    """
     api_key = os.getenv("MAILJET_API_KEY")
     api_secret = os.getenv("MAILJET_API_SECRET")
     sender_email = os.getenv("MAILJET_SENDER_EMAIL")
@@ -129,10 +110,7 @@ def send_email(subject, html_content, footer):
                     "TemplateID": TEMPLATE_ID,
                     "TemplateLanguage": True,
                     "Subject": subject,
-                    "Variables": {
-                        "content": html_content,
-                        "footer": footer
-                    }
+                    "Variables": {"content": html_content, "footer": footer}
                 }
             ]
         }
