@@ -38,13 +38,13 @@ def generate_email_body(new_df, removed_df, changed_df):
     <div style="font-family:Arial, sans-serif; font-size:15px; color:#222;">
         <p style="font-size:16px; margin-bottom:20px;">
             <br>
-            Here is your update on <strong>CLH registry changes</strong>:
+            Here is your update on <strong>CLH registry changes today</strong>:
         </p>
         {build_html_section(new_df, "🚀", "New entries", "#007bff")}
         {build_html_section(removed_df, "❌", "Removed entries", "#dc3545")}
         {build_html_section(changed_df, "🔄", "Changed entries", "#fd7e14")}
         <p style="margin-top:30px; font-size:14px; color:#888;">
-            Stay safe,<br><strong>CLH Monitor</strong>
+            HazSnap Team,<br><strong>Saving you time</strong>
         </p>
     </div>
     """
@@ -150,6 +150,6 @@ if __name__ == "__main__":
         print("No changes detected — no emails sent.")
     else:
         html_body = generate_email_body(new_df, removed_df, changed_df)
-        footer_html = "<p>CLH Monitor &copy; 2025</p>"
+        footer_html = "<p>HazSnap on {today_str}</p>"
         subject = f"🧪 CLH Changes Detected – {today_str}"
         send_email(subject, html_body, footer_html)
