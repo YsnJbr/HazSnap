@@ -104,6 +104,12 @@ def get_contacts(contact_list_id):
 
 # ========== SEND EMAIL ==========
 def send_email(subject, html_content, footer):
+    """
+    Sends personalized emails using a Mailjet template.
+    IMPORTANT:
+    - The Mailjet template must use {{var:content}} and {{var:footer}} (not triple braces).
+    - HTML in these variables will be inserted as raw HTML.
+    """
     api_key = os.getenv("MAILJET_API_KEY")
     api_secret = os.getenv("MAILJET_API_SECRET")
     sender_email = os.getenv("MAILJET_SENDER_EMAIL")
@@ -123,7 +129,10 @@ def send_email(subject, html_content, footer):
                     "TemplateID": TEMPLATE_ID,
                     "TemplateLanguage": True,
                     "Subject": subject,
-                    "Variables": {"content": html_content, "footer": footer}
+                    "Variables": {
+                        "content": html_content,
+                        "footer": footer
+                    }
                 }
             ]
         }
