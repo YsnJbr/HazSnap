@@ -151,5 +151,5 @@ if __name__ == "__main__":
     else:
         html_body = generate_email_body(new_df, removed_df, changed_df)
         footer_html = "<p>HazSnap on {today_str}</p>"
-        subject = f"🧪 CLH Changes Detected – {today_str}"
+        subject = f"HazSnap - CLH Changes Detected – {today_str}"
         send_email(subject, html_body, footer_html)
