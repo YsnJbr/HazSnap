@@ -5,44 +5,47 @@ from mailjet_rest import Client
 import requests
 
 # ========== CONFIGURATION ==========
-ESSENTIAL_COLS = ['Substance name', 'CAS no', 'Status', 'Submitter', 'Latest update', 'Details Link']
+ESSENTIAL_COLS = ['Substance name', 'CAS no', 'Status', 'Submitter', 'Latest update', 'Details Link', 'Link ID']
 DATA_DIR = "Data"
 TEMPLATE_ID = 7028286
 CONTACT_LIST_ID = 10530945  # Your Mailjet contact list ID
+BASE_URL = "https://echa.europa.eu/registry-of-clh-intentions-until-outcome/-/dislist/details/"
 
 # ========== GENERATE EMAIL BODY ==========
 def generate_email_body(new_df, removed_df, changed_df):
-    def format_rows(df, label):
+    def build_html_list(df, label):
         if df.empty:
             return f"<p><strong>{label}:</strong> None</p>"
-        lines = []
-        for _, row in df.iterrows():
-            substance = row.get('Substance name', 'N/A')
-            cas_no = row.get('CAS no', 'N/A')
-            status = row.get('Status', 'N/A')
-            submitter = row.get('Submitter', 'N/A')
-            latest_update = row.get('Latest update', 'N/A')
-            details_link = row.get('Details Link', '')
 
-            if isinstance(details_link, str) and details_link.startswith("http"):
-                link_html = f'<a href="{details_link}" target="_blank">Details</a>'
+        html_items = []
+        for _, row in df.iterrows():
+            name = row.get('Substance name', 'N/A')
+            cas = row.get('CAS no', 'N/A')
+            date = row.get('Latest update', 'N/A')
+
+            # Determine the link URL: prefer Details Link, fallback to Link ID if exists
+            link = ""
+            if 'Details Link' in row and isinstance(row['Details Link'], str) and row['Details Link'].startswith("http"):
+                link = row['Details Link']
+            elif 'Link ID' in row and pd.notna(row['Link ID']):
+                link = BASE_URL + str(row['Link ID'])
+
+            if link:
+                link_html = f'<a href="{link}" target="_blank">View 🔗</a>'
             else:
                 link_html = "No link"
 
-            line = (
-                f"- <strong>{substance}</strong> (CAS: {cas_no}), "
-                f"Status: {status}, Submitter: {submitter}, "
-                f"Updated: {latest_update} — {link_html}"
-            )
-            lines.append(line)
-        return f"<p><strong>{label} ({len(df)}):</strong><br>" + "<br>".join(lines) + "</p>"
+            html_items.append(f'<li><strong>{name}</strong> (CAS no: {cas}) - {date} - {link_html}</li>')
 
-    summary_html = (
-        format_rows(new_df, "New entries") +
-        format_rows(removed_df, "Removed entries") +
-        format_rows(changed_df, "Changed entries")
-    )
-    return summary_html
+        return f"<p><strong>{label} ({len(df)}):</strong></p><ul>{''.join(html_items)}</ul>"
+
+    parts = [
+        build_html_list(new_df, "New entries"),
+        build_html_list(removed_df, "Removed entries"),
+        build_html_list(changed_df, "Changed entries"),
+    ]
+
+    return "<br>".join(parts)
 
 # ========== LOAD SNAPSHOTS ==========
 def load_today_and_yesterday():
