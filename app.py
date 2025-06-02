@@ -61,7 +61,7 @@ else:
                         lambda link_id: f'[🔗](https://echa.europa.eu/registry-of-clh-intentions-until-outcome/-/dislist/details/{link_id})'
                         if pd.notna(link_id) else ""
                     )
-                st.dataframe(df_display, use_container_width=True)
+                st.dataframe(df_display)
                 show_links_section(df_display, label + " Links")
 
             # --- HTML links section per table ---
@@ -94,7 +94,7 @@ else:
                     lambda link_id: f'[🔗](https://echa.europa.eu/registry-of-clh-intentions-until-outcome/-/dislist/details/{link_id})'
                     if pd.notna(link_id) else ""
                 )
-            st.dataframe(df_full, use_container_width=True)
+            st.dataframe(df_full)
 
             # --- Full Table Link Section ---
             show_links_section(df_full, f"Full Table Links ({today.strftime('%Y-%m-%d')})")
