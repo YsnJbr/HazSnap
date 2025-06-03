@@ -38,7 +38,7 @@ def generate_email_body(new_df, removed_df, changed_df):
     <div style="font-family:Arial, sans-serif; font-size:15px; color:#222;">
         <p style="font-size:16px; margin-bottom:20px;">
             <br>
-            Here is your update on <strong>CLH registry changes today</strong>:
+            Change detected on CLH registry changes today:
         </p>
         {build_html_section(new_df, "🚀", "New entries", "#007bff")}
         {build_html_section(removed_df, "❌", "Removed entries", "#dc3545")}
