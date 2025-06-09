@@ -68,7 +68,7 @@ def app():
             font-size: 20px; 
             font-weight: 600; 
             line-height: 1.4; 
-            background-color: #f0f8ff; 
+            background-color: #f7dada; 
             padding: 15px; 
             border-radius: 8px; 
             margin-bottom: 10px;
