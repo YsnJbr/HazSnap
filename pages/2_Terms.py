@@ -40,9 +40,11 @@ st.markdown("""
 
 st.markdown("""
 ### Data Privacy
-- No personal or sensitive data is stored or processed by this app directly.  
-- Anonymous performance and usage metrics may be collected to improve service reliability.  
-- The application is designed to be **compliant with GDPR** and respects your privacy.
+- This application **does not store or process personal data directly on its own servers**.  
+- **Email addresses** used for notifications are managed and stored securely via **Mailjet**, a GDPR-compliant third-party provider.  
+- No other personal or sensitive data is collected.  
+- Anonymous usage metrics may be gathered to improve performance.  
+- All email subscribers can **opt out** at any time via the unsubscribe link included in each notification.
 """)
 
 st.markdown("""
@@ -73,4 +75,4 @@ For support or legal inquiries, please contact:
 """)
 
 st.markdown("---")
-st.caption(f"© {current_year} [APP_NAME] | Created with care for transparency and respect for public data.")
+st.caption(f"© {current_year} [HazSnap] | Created with care for transparency and respect for public data.")
