@@ -37,7 +37,6 @@ def add_contact_to_mailjet(email, firstname, lastname, organization, country, ci
             {"Name": "lastname", "Value": lastname},
             {"Name": "organization", "Value": organization},
             {"Name": "country", "Value": country},
-            {"Name": "city", "Value": city}
         ]
     })
 
