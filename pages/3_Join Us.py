@@ -77,7 +77,7 @@ def app():
         """
         st.markdown(consent_text, unsafe_allow_html=True)
 
-        consent = st.checkbox("✅", key="consent_checkbox")
+        consent = st.checkbox("✅ I read, understood and conscent.", key="consent_checkbox")
 
         submitted = st.form_submit_button("Subscribe")
 
