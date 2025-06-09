@@ -1,69 +1,76 @@
 import streamlit as st
 from datetime import datetime
 
-current_year = datetime.now().year
-
 from style import inject_montserrat_css
 inject_montserrat_css()
 
-st.title("⚖️ Legal Notice & Data Use")
+current_year = datetime.now().year
+
+st.title("⚖️ Legal Notice & Terms of Use")
 
 st.markdown("""
-### Data Archival and Use Policy
-This application periodically saves **static snapshots** (PDF or HTML files) of publicly accessible data from the **European Chemicals Agency (ECHA)** website, specifically from the **Registry of Classification and Labelling Harmonized (CLH) Intentions** page.  
-These snapshots serve as archival copies for **transparency, research, and educational purposes**.
+### Purpose and Nature of This Application
+This application automatically captures **timestamped, static snapshots** (PDF or HTML format) of publicly available content from the **European Chemicals Agency (ECHA)** website, specifically from the **CLH Registry of Harmonised Classification and Labelling Intentions**.
+
+The purpose is to detect and notify subscribers about **changes** on that public page for **informational, academic, or research-related purposes**.  
+This application is developed and maintained by a **private individual**, with no affiliation to ECHA or any governmental body.
 """)
 
 st.markdown("""
-### Compliance with EU Law
-- **Archival Use:**  
-  Snapshots are taken infrequently and represent **static, timestamped captures** of public web pages. This aligns with accepted principles of archiving publicly available information.  
-- **Research and Educational Exemptions:**  
-  Under EU directives like the **Database Directive (96/9/EC)** and **InfoSoc Directive (2001/29/EC)**, archiving and using data for **non-commercial research, private study, or educational purposes** are exempt from some database and copyright restrictions.  
-- **No Unauthorized Scraping:**  
-  This app does **not** perform unauthorized automated scraping or bypass any access controls. All data captured is **publicly accessible** without login or paywall.  
-- **Respect for Website Integrity:**  
-  Snapshotting is performed at **low frequency** to avoid server overload or disruption.
+### Legal Basis and Compliance
+- **Archival Practices:**  
+  All data collected consists of **publicly available web content**, and is archived in accordance with accepted standards for transparency and public record-keeping.
+
+- **Use Under EU Directives:**  
+  This app operates in alignment with provisions from the **Database Directive (96/9/EC)** and **InfoSoc Directive (2001/29/EC)**, which allow reproduction for **non-commercial research, teaching, or private study**.
+
+- **No Circumvention of Protections:**  
+  The application does **not** bypass login systems, paywalls, robots.txt files, or technical access restrictions.  
+
+- **Low Impact:**  
+  Data is retrieved at a **low frequency**, and care is taken to **respect the stability and performance of source servers**.
 """)
 
 st.markdown("""
-### User Responsibilities
-Users must comply with applicable laws and respect data ownership.  
-The snapshots provided are for **informational and research use only** and **do not substitute official regulatory advice or data from ECHA**. ⚠️
+### Subscriber & User Responsibilities
+- Users are responsible for complying with all applicable laws and terms of the source website(s).  
+- This application **does not provide legal or regulatory advice**.  
+- Snapshots and notifications are provided **"as-is"**, for **informational** purposes only and should not be relied upon as official data.
 """)
 
 st.markdown("""
-### Privacy Policy
-- No personal data is collected or stored by this application.  
-- Usage data may be collected anonymously for performance monitoring only.  
-- We respect your privacy and adhere to GDPR standards.
+### Data Privacy
+- No personal or sensitive data is stored or processed by this app directly.  
+- Anonymous performance and usage metrics may be collected to improve service reliability.  
+- The application is designed to be **compliant with GDPR** and respects your privacy.
 """)
 
 st.markdown("""
-### Terms of Use
-- You agree to use the data and snapshots responsibly and only for lawful purposes.  
-- Redistribution or commercial use of the snapshots without permission is prohibited.  
-- We reserve the right to update or modify these terms at any time.
+### Email Communication & Subscription
+- Email notifications are sent only to users who have **explicitly opted in** via Mailjet.  
+- You may unsubscribe at any time using the link provided in each email.  
+- Email data is securely handled by Mailjet in accordance with their data protection policies.
 """)
 
 st.markdown("""
-### User Conduct
-- Users must not attempt to interfere with the app’s operation or the source website.  
-- Automated bulk downloading or abusive behavior will result in access termination.
+### Usage Restrictions
+- Redistribution, commercial use, or republication of archived snapshots without express permission is **strictly prohibited**.  
+- You may not use this application or its outputs for unlawful or malicious purposes.  
+- We reserve the right to **suspend or restrict access** for any user who violates these terms or engages in abusive activity.
 """)
 
 st.markdown("""
 ### Limitation of Liability
-- This app and its data are provided "as is" without warranties of any kind.  
-- We are not liable for any errors, inaccuracies, or damages arising from use of this data.  
-- Always verify critical information with official sources.
+- This application and its content are provided **without any warranties**, express or implied.  
+- The developer accepts **no liability** for errors, omissions, or for actions taken based on the data provided.  
+- Always consult **official regulatory sources** for authoritative information.
 """)
 
 st.markdown("""
-### Contact Information
-For questions or concerns, please contact:  
-**Email:** ADD_EMAIL_OR_GITHUB  
+### Contact
+For support or legal inquiries, please contact:  
+**Email:** [ADD_EMAIL_OR_GITHUB]
 """)
 
 st.markdown("---")
-st.caption(f"© {current_year} APP_NAME | Made with ❤️ and respect for open data")
+st.caption(f"© {current_year} [APP_NAME] | Created with care for transparency and respect for public data.")
