@@ -45,10 +45,20 @@ def app():
     st.set_page_config(page_title="Join HazSnap Alerts", layout="centered")
     st.title("📬 Subscribe to HazSnap Alerts")
 
-    st.markdown("""
-    Stay informed with automated alerts whenever significant updates occur in the ECHA CLH Registry.  
-    We’ll notify you by email — no spam, no noise.  
-    """)
+    st.markdown("### 📢 Stay informed")
+    st.markdown(
+        """
+        Receive automated alerts whenever **significant updates** occur in the *ECHA CLH Registry*.
+        """,
+        unsafe_allow_html=False
+    )
+    st.markdown(
+        "We’ll notify you by **email** — no spam, no noise. ✅",
+    )
+    st.write("")  # adds a little vertical spacing
+
+
+
 
     with st.form("subscription_form"):
         email = st.text_input("Email *", help="Required")
