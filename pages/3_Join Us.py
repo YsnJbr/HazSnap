@@ -48,15 +48,11 @@ def app():
     st.markdown("### 📢 Stay informed")
     st.markdown(
         """
-        Receive automated alerts whenever **important updates** occur in the *ECHA CLH Registry*.
+        Receive automated alerts whenever **important updates** occur in the *ECHA CLH Registry*. We’ll notify you by **email** — no spam, no noise. ✅
+
         """,
         unsafe_allow_html=False
     )
-    st.markdown(
-        "We’ll notify you by **email** — no spam, no noise. ✅",
-    )
-    st.write("")  # adds a little vertical spacing
-
 
 
 
