@@ -43,7 +43,7 @@ def add_contact_to_mailjet(email, firstname, name, country):
 # Main Streamlit app
 def app():
     st.set_page_config(page_title="Join HazSnap Alerts", layout="centered")
-    st.title("📬 Subscribe to HazSnap Alerts")
+    st.title("📬 Subscribe to HazSnap")
 
     st.markdown("### 📢 Stay informed")
     st.markdown(
