@@ -69,15 +69,15 @@ def app():
             border: 2px solid #0078d7;
         ">
             ✅ <label for="consent_checkbox">
-            I consent to receive <strong>email notifications</strong> from HazSnap about regulatory updates.<br>
-            I understand I can <strong>unsubscribe at any time</strong> via the link in each email.<br>
-            My personal data will be processed securely, in compliance with <a href="https://yourdomain.com/privacy-policy" target="_blank">GDPR</a> and the HazSnap Privacy Policy.
+            I consent to receive <strong>email notifications</strong> from HazSnap about regulatory updates.
+            I understand I can <strong>unsubscribe at any time</strong> via the link in each email.
+            My personal data will be processed securely, in compliance with <a href="https://hazsnap.streamlit.app/Terms" target="_blank">our policy</a> and the HazSnap Privacy Policy.
             </label>
         </div>
         """
         st.markdown(consent_text, unsafe_allow_html=True)
 
-        consent = st.checkbox("", key="consent_checkbox")
+        consent = st.checkbox("✅", key="consent_checkbox")
 
         submitted = st.form_submit_button("Subscribe")
 
