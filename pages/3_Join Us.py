@@ -10,8 +10,8 @@ def is_valid_email(email):
     return re.match(r"[^@]+@[^@]+\.[^@]+", email)
 
 def add_contact_to_mailjet(email, firstname, lastname, organization, country, city):
-    api_key = st.secrets["MAILJET_API_KEY"]
-    api_secret = st.secrets["MAILJET_API_SECRET"]
+    api_key = st.secrets["mailjet"]["api_key"]
+    api_secret = st.secrets["mailjet"]["api_secret"]
     mailjet = Client(auth=(api_key, api_secret), version='v3')
 
     # Prepare contact data with custom properties
