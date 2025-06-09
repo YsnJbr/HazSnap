@@ -15,7 +15,7 @@ def is_valid_email(email):
     return re.match(r"[^@]+@[^@]+\.[^@]+", email)
 
 # Add contact to Mailjet list
-def add_contact_to_mailjet(email, firstname, lastname, organization, country, city):
+def add_contact_to_mailjet(email, firstname, lastname, country):
     # Step 1 – Add contact to Mailjet (if not already exists)
     contact_resp = mailjet.contact.create(data={"Email": email})
     if contact_resp.status_code not in [200, 201]:
@@ -58,9 +58,7 @@ We’ll notify you by email — no spam, no noise.
         email = st.text_input("Email *", help="Required")
         firstname = st.text_input("First Name")
         lastname = st.text_input("Last Name")
-        organization = st.text_input("Organization / Company")
         country = st.text_input("Country")
-        city = st.text_input("City")
 
         consent = st.checkbox(
             "✅ I consent to receive email notifications from HazSnap about regulatory updates. "
@@ -80,7 +78,7 @@ We’ll notify you by email — no spam, no noise.
 
         with st.spinner("Submitting your subscription..."):
             success, error_msg = add_contact_to_mailjet(
-                email, firstname, lastname, organization, country, city
+                email, firstname, lastname, country
             )
 
         if success:
