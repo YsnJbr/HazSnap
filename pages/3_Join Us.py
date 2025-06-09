@@ -16,25 +16,16 @@ def is_valid_email(email):
 
 # Add or update contact in Mailjet list (no double opt-in)
 def add_contact_to_mailjet(email, firstname, name, country):
-    # Step 1: Create or update contact
     contact_resp = mailjet.contact.create(data={"Email": email})
     if contact_resp.status_code not in [200, 201]:
-        # If error is not "already exists", return failure
         if "already exists" not in str(contact_resp.json()):
             return False, f"Failed to create contact: {contact_resp.status_code} {contact_resp.json()}"
-
-    # Step 2: Add contact to list without forcing opt-in
     list_resp = mailjet.contactslist_managecontact.create(
         id=MAILJET_LIST_ID,
-        data={
-            "Email": email,
-            "Action": "addnoforce"  # Add contact without forcing opt-in confirmation
-        }
+        data={"Email": email, "Action": "addnoforce"}
     )
     if list_resp.status_code not in [200, 201]:
         return False, f"Failed to add contact to list: {list_resp.status_code} {list_resp.json()}"
-
-    # Step 3: Update contact properties (custom fields)
     update_resp = mailjet.contactdata.update(
         id=email,
         data={
@@ -47,7 +38,6 @@ def add_contact_to_mailjet(email, firstname, name, country):
     )
     if update_resp.status_code not in [200, 201]:
         return False, f"Failed to update contact data: {update_resp.status_code} {update_resp.json()}"
-
     return True, None
 
 # Main Streamlit app
@@ -66,11 +56,28 @@ def app():
         name = st.text_input("Last Name")
         country = st.text_input("Country")
 
-        consent = st.checkbox(
-            "✅ I consent to receive email notifications from HazSnap about regulatory updates. "
-            "I understand I can unsubscribe at any time via the link provided in each email. "
-            "My personal data will be processed securely, in compliance with GDPR and the HazSnap Privacy Policy."
-        )
+        # Big, clear consent text before checkbox, styled with HTML and CSS
+        consent_text = """
+        <div style="
+            font-size: 20px; 
+            font-weight: 600; 
+            line-height: 1.4; 
+            background-color: #f0f8ff; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin-bottom: 10px;
+            border: 2px solid #0078d7;
+        ">
+            ✅ <label for="consent_checkbox">
+            I consent to receive <strong>email notifications</strong> from HazSnap about regulatory updates.<br>
+            I understand I can <strong>unsubscribe at any time</strong> via the link in each email.<br>
+            My personal data will be processed securely, in compliance with <a href="https://yourdomain.com/privacy-policy" target="_blank">GDPR</a> and the HazSnap Privacy Policy.
+            </label>
+        </div>
+        """
+        st.markdown(consent_text, unsafe_allow_html=True)
+
+        consent = st.checkbox("", key="consent_checkbox")
 
         submitted = st.form_submit_button("Subscribe")
 
