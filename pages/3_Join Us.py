@@ -15,7 +15,7 @@ def is_valid_email(email):
     return re.match(r"[^@]+@[^@]+\.[^@]+", email)
 
 # Add contact to Mailjet list
-def add_contact_to_mailjet(email, firstname, lastname, country):
+def add_contact_to_mailjet(email, firstname, name, country):
     # Step 1 – Add contact to Mailjet (if not already exists)
     contact_resp = mailjet.contact.create(data={"Email": email})
     if contact_resp.status_code not in [200, 201]:
@@ -34,7 +34,7 @@ def add_contact_to_mailjet(email, firstname, lastname, country):
     update_resp = mailjet.contactdata.update(id=email, data={
         "Data": [
             {"Name": "firstname", "Value": firstname},
-            {"Name": "lastname", "Value": lastname},
+            {"Name": "name", "Value": name},
             {"Name": "country", "Value": country},
         ]
     })
@@ -57,7 +57,7 @@ We’ll notify you by email — no spam, no noise.
     with st.form("opt_in_form"):
         email = st.text_input("Email *", help="Required")
         firstname = st.text_input("First Name")
-        lastname = st.text_input("Last Name")
+        name = st.text_input("Name")
         country = st.text_input("Country")
 
         consent = st.checkbox(
@@ -78,7 +78,7 @@ We’ll notify you by email — no spam, no noise.
 
         with st.spinner("Submitting your subscription..."):
             success, error_msg = add_contact_to_mailjet(
-                email, firstname, lastname, country
+                email, firstname, name, country
             )
 
         if success:
