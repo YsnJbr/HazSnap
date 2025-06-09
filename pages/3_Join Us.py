@@ -57,7 +57,7 @@ def app():
 
 
     with st.form("subscription_form"):
-        email = st.text_input("Email *", help="Required")
+        email = st.text_input("Email *", help="Required: we can't send you email without it 😊!")
         firstname = st.text_input("First Name")
         name = st.text_input("Last Name")
         country = st.text_input("Country")
