@@ -50,7 +50,7 @@ def app():
     st.title("📬 Subscribe to HazSnap Alerts")
 
     st.markdown("""
-Stay informed with automated alerts whenever significant updates occur in the ECHA CLH Registry.  
+Staxxxxy informed with automated alerts whenever significant updates occur in the ECHA CLH Registry.  
 We’ll notify you by email — no spam, no noise.  
 """)
 
