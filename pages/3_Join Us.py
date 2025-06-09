@@ -48,7 +48,7 @@ def app():
     st.markdown("### 📢 Stay informed")
     st.markdown(
         """
-        Receive automated alerts whenever **significant updates** occur in the *ECHA CLH Registry*.
+        Receive automated alerts whenever **important updates** occur in the *ECHA CLH Registry*.
         """,
         unsafe_allow_html=False
     )
