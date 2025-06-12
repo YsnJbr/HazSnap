@@ -108,6 +108,7 @@ def main():
     columns_to_drop = ["Unnamed: 7", "Details Link", "Link Constant"]
     df = df.drop(columns=[col for col in columns_to_drop if col in df.columns])
 
+
     df.to_csv(csv_path, index=False)
     print(f"📄 CSV with detail links saved to: {csv_path}")
 
